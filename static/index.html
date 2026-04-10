@@ -413,7 +413,7 @@
       </div>
       <span class="live-badge">
         <span class="live-dot"></span>
-        Live · SSE
+        Live · Streamable HTTP
       </span>
     </div>
   </header>
@@ -429,7 +429,7 @@
         published on <strong>data.go.kr</strong> (Korea's Public Data Portal), based on wellness tourism
         data curated by the <strong>Korea Tourism Organization (KTO)</strong>. It exposes 9 structured
         tools that Manus AI, Claude, and other MCP-compatible agents can call directly via
-        Server-Sent Events (SSE).
+        Streamable HTTP.
       </p>
     </section>
 
@@ -444,15 +444,15 @@
         <pre class="connector-body" id="connector-json">{
   "mcpServers": {
     "visitkorea-wellnesstourism": {
-      "url": "https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/sse",
-      "type": "sse"
+      "url": "https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/mcp",
+      "type": "streamable-http"
     }
   }
 }</pre>
       </div>
       <p class="connector-note">
-        Paste this into your AI agent's custom connector settings. The SSE endpoint is at
-        <code>https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/sse</code>
+        Paste this into your AI agent's custom connector settings. The Streamable HTTP endpoint is at
+        <code>https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/mcp</code>
       </p>
       <p class="connector-dev-note">
         This is the development URL. Deploy the project to get your permanent
@@ -603,7 +603,7 @@
       </div>
       <div class="meta-card">
         <p class="meta-label">Transport</p>
-        <p class="meta-value">SSE (Server-Sent Events)</p>
+        <p class="meta-value">Streamable HTTP</p>
         <p class="meta-sub">MCP protocol compatible</p>
       </div>
     </section>
@@ -635,7 +635,7 @@
 
 This MCP server provides direct, structured access to the **Korea Tourism Organization (KTO) Wellness Tourism dataset**, officially published on [data.go.kr](https://www.data.go.kr/data/15144030/openapi.do) under the service ID `WellnessTursmService`. The data covers wellness tourism destinations across all of South Korea — spas, hot springs, jjimjilbang (Korean sauna), traditional medicine clinics, healing meditation centres, beauty spas, and nature therapy sites.
 
-The server exposes **9 tools** over Server-Sent Events (SSE). Each tool wraps one API endpoint from the KTO open API, normalises the response, and returns a clean dict. No data is cached or synthesised — every call returns live data from the official KTO dataset.
+The server exposes **9 tools** over Streamable HTTP. Each tool wraps one API endpoint from the KTO open API, normalises the response, and returns a clean dict. No data is cached or synthesised — every call returns live data from the official KTO dataset.
 
 ---
 
