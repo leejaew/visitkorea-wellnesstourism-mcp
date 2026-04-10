@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+.replit
+.replit-artifact/
+venv/
+.venv/
+.upm/
+*.egg-info/
+dist/
+build/
+.DS_Store
+*.log
