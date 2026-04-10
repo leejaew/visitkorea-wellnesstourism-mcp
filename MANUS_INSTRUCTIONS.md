@@ -6,8 +6,6 @@ This MCP server provides direct, structured access to the **Korea Tourism Organi
 
 The server exposes **9 tools** over Server-Sent Events (SSE). Each tool wraps one API endpoint from the KTO open API, normalises the response, and returns a clean dict. No data is cached or synthesised — every call returns live data from the official KTO dataset.
 
-**SSE endpoint:** `https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/sse`
-
 ---
 
 ## When to Use This MCP
