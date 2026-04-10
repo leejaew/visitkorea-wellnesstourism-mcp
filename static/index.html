@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>VisitKorea Wellness Tourism MCP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: hsl(220, 20%, 97%);
+      --header-bg: #ffffff;
+      --card-bg: #ffffff;
+      --border: hsl(220, 13%, 91%);
+      --foreground: hsl(222, 47%, 11%);
+      --muted-fg: hsl(215, 16%, 47%);
+      --primary: hsl(222, 89%, 55%);
+      --muted: hsl(220, 14%, 96%);
+      --slate-900: hsl(222, 47%, 11%);
+      --slate-100: hsl(210, 40%, 96%);
+      --slate-400: hsl(215, 20%, 65%);
+      --green-50: hsl(138, 76%, 97%);
+      --green-200: hsl(141, 79%, 85%);
+      --green-500: hsl(142, 71%, 45%);
+      --green-700: hsl(142, 72%, 29%);
+      --amber-600: hsl(32, 95%, 44%);
+    }
+
+    html, body {
+      min-height: 100vh;
+      background: var(--bg);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--foreground);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-inner {
+      max-width: 56rem;
+      margin: 0 auto;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .header-flag { font-size: 1.5rem; line-height: 1; }
+    .header-text { flex: 1; }
+    .header-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--foreground);
+      line-height: 1.25;
+    }
+    .header-subtitle {
+      font-size: 0.75rem;
+      color: var(--muted-fg);
+      margin-top: 0.1rem;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.625rem;
+      border-radius: 9999px;
+      background: var(--green-50);
+      color: var(--green-700);
+      border: 1px solid var(--green-200);
+      white-space: nowrap;
+    }
+    .live-dot {
+      width: 0.375rem;
+      height: 0.375rem;
+      border-radius: 9999px;
+      background: var(--green-500);
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── MAIN ── */
+    main {
+      max-width: 56rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    /* ── SECTION HEADINGS ── */
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted-fg);
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── HERO ── */
+    .hero-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--foreground);
+      line-height: 1.25;
+    }
+    .hero-desc {
+      margin-top: 0.5rem;
+      color: var(--muted-fg);
+      max-width: 42rem;
+    }
+    .hero-desc code {
+      font-size: 0.75rem;
+      background: var(--muted);
+      padding: 0.125rem 0.25rem;
+      border-radius: 0.25rem;
+    }
+    .hero-desc strong {
+      font-weight: 600;
+      color: var(--foreground);
+    }
+
+    /* ── CONNECTOR ── */
+    .connector-block {
+      border-radius: 0.75rem;
+      background: var(--slate-900);
+      color: var(--slate-100);
+      overflow: hidden;
+    }
+    .connector-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.625rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .connector-header-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--slate-400);
+    }
+    .copy-btn {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.75rem;
+      border-radius: 0.375rem;
+      background: rgba(255,255,255,0.1);
+      color: var(--slate-100);
+      border: 1px solid rgba(255,255,255,0.15);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.18); }
+    .connector-body {
+      padding: 1rem;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.875rem;
+      line-height: 1.625;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .connector-note {
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted-fg);
+    }
+    .connector-note code {
+      font-size: 0.75rem;
+      background: var(--muted);
+      padding: 0.125rem 0.25rem;
+      border-radius: 0.25rem;
+    }
+    .connector-dev-note {
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      color: var(--amber-600);
+    }
+    .connector-dev-note code {
+      font-size: 0.75rem;
+      background: var(--muted);
+      padding: 0.125rem 0.25rem;
+      border-radius: 0.25rem;
+    }
+
+    /* ── TOOLS ── */
+    .tools-grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .tool-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .tool-num {
+      margin-top: 0.125rem;
+      font-size: 0.75rem;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-weight: 700;
+      color: var(--muted-fg);
+      background: var(--muted);
+      border-radius: 0.25rem;
+      padding: 0.125rem 0.375rem;
+      flex-shrink: 0;
+      line-height: 1.5;
+    }
+    .tool-content {}
+    .tool-name-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tool-name {
+      font-size: 0.875rem;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .tool-operation {
+      font-size: 0.75rem;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      color: var(--muted-fg);
+      background: var(--muted);
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+    }
+    .tool-desc {
+      margin-top: 0.25rem;
+      font-size: 0.875rem;
+      color: var(--muted-fg);
+    }
+
+    /* ── LANGUAGES ── */
+    .lang-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    @media (min-width: 640px) {
+      .lang-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .lang-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      text-align: center;
+    }
+    .lang-code {
+      font-size: 1rem;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-weight: 700;
+      color: var(--primary);
+      display: block;
+    }
+    .lang-name {
+      margin-top: 0.125rem;
+      font-size: 0.75rem;
+      color: var(--muted-fg);
+      display: block;
+    }
+    .lang-note {
+      margin-top: 0.75rem;
+      font-size: 0.875rem;
+      color: var(--muted-fg);
+    }
+    .lang-note code {
+      font-size: 0.75rem;
+      background: var(--muted);
+      padding: 0.125rem 0.25rem;
+      border-radius: 0.25rem;
+    }
+
+    /* ── META GRID ── */
+    .meta-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(2, 1fr);
+    }
+    @media (min-width: 640px) {
+      .meta-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .meta-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+    }
+    .meta-label {
+      font-size: 0.75rem;
+      color: var(--muted-fg);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .meta-value {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--foreground);
+    }
+    .meta-sub {
+      font-size: 0.75rem;
+      color: var(--muted-fg);
+      margin-top: 0.125rem;
+    }
+
+    /* ── FOOTER ── */
+    .footer-links {
+      text-align: center;
+      padding: 1rem 0;
+      border-top: 1px solid var(--border);
+      font-size: 0.875rem;
+    }
+    .footer-links a { color: var(--primary); }
+    .footer-links .sep { margin: 0 0.75rem; color: var(--muted-fg); }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <span class="header-flag">🇰🇷</span>
+      <div class="header-text">
+        <div class="header-title">visitkorea-wellnesstourism-mcp</div>
+        <div class="header-subtitle">Korea Tourism Organization (KTO) · Open API via data.go.kr · MCP Server</div>
+      </div>
+      <span class="live-badge">
+        <span class="live-dot"></span>
+        Live · SSE
+      </span>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- HERO -->
+    <section>
+      <h2 class="hero-title">AI-ready access to Korea's wellness tourism data</h2>
+      <p class="hero-desc">
+        This MCP (Model Context Protocol) server wraps the <code>WellnessTursmService</code> Open API
+        published on <strong>data.go.kr</strong> (Korea's Public Data Portal), based on wellness tourism
+        data curated by the <strong>Korea Tourism Organization (KTO)</strong>. It exposes 9 structured
+        tools that Manus AI, Claude, and other MCP-compatible agents can call directly via
+        Server-Sent Events (SSE).
+      </p>
+    </section>
+
+    <!-- CONNECT -->
+    <section>
+      <h3 class="section-label">Connect your AI agent</h3>
+      <div class="connector-block">
+        <div class="connector-header">
+          <span class="connector-header-label">MCP Connector JSON</span>
+          <button class="copy-btn" onclick="copyJson()">Copy</button>
+        </div>
+        <pre class="connector-body" id="connector-json">{
+  "mcpServers": {
+    "visitkorea-wellnesstourism": {
+      "url": "https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/sse",
+      "type": "sse"
+    }
+  }
+}</pre>
+      </div>
+      <p class="connector-note">
+        Paste this into your AI agent's custom connector settings. The SSE endpoint is at
+        <code>https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/sse</code>
+      </p>
+      <p class="connector-dev-note">
+        This is the development URL. Deploy the project to get your permanent
+        <code>.replit.app</code> production URL.
+      </p>
+    </section>
+
+    <!-- TOOLS -->
+    <section>
+      <h3 class="section-label">Available Tools (9)</h3>
+      <div class="tools-grid">
+
+        <div class="tool-card">
+          <span class="tool-num">01</span>
+          <div class="tool-content">
+            <div class="tool-name-row">
+              <code class="tool-name">get_legal_district_codes</code>
+              <span class="tool-operation">ldongCode</span>
+            </div>
+            <p class="tool-desc">Look up legal administrative district codes (provinces and cities) — required before region-based searches.</p>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <span class="tool-num">02</span>
+          <div class="tool-content">
+            <div class="tool-name-row">
+              <code class="tool-name">search_wellness_by_area</code>
+              <span class="tool-operation">areaBasedList</span>
+            </div>
+            <p class="tool-desc">List wellness tourism spots filtered by province or city/county, content type, and wellness theme.</p>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <span class="tool-num">03</span>
+          <div class="tool-content">
+            <div class="tool-name-row">
+              <code class="tool-name">search_wellness_by_location</code>
+              <span class="tool-operation">locationBasedList</span>
+            </div>
+            <p class="tool-desc">Find wellness spots within a GPS radius (up to 20 km) using WGS84 coordinates.</p>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <span class="tool-num">04</span>
+          <div class="tool-content">
+            <div class="tool-name-row">
+              <code class="tool-name">search_wellness_by_keyword</code>
+              <span class="tool-operation">searchKeyword</span>
+            </div>
+            <p class="tool-desc">Search wellness facilities by keyword across all regions. Supports Korean and English keywords.</p>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <span class="tool-num">05</span>
+          <div class="tool-content">
+            <div class="tool-name-row">
+              <code class="tool-name">get_wellness_sync_list</code>
+              <span class="tool-operation">wellnessTursmSyncList</span>
+            </div>
+            <p class="tool-desc">Retrieve the full sync list with display status and legacy content ID mapping.</p>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <span class="tool-num">06</span>
+          <div class="tool-content">
+            <div class="tool-name-row">
+              <code class="tool-name">get_wellness_common_info</code>
+              <span class="tool-operation">detailCommon</span>
+            </div>
+            <p class="tool-desc">Fetch common details — title, address, GPS coordinates, phone, homepage, and overview text.</p>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <span class="tool-num">07</span>
+          <div class="tool-content">
+            <div class="tool-name-row">
+              <code class="tool-name">get_wellness_intro_info</code>
+              <span class="tool-operation">detailIntro</span>
+            </div>
+            <p class="tool-desc">Fetch introductory facility details — opening hours, rest days, parking, capacity, age suitability.</p>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <span class="tool-num">08</span>
+          <div class="tool-content">
+            <div class="tool-name-row">
+              <code class="tool-name">get_wellness_repeating_info</code>
+              <span class="tool-operation">detailInfo</span>
+            </div>
+            <p class="tool-desc">Fetch repeating structured info — fees, amenities, accessibility, and reservation guidance.</p>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <span class="tool-num">09</span>
+          <div class="tool-content">
+            <div class="tool-name-row">
+              <code class="tool-name">get_wellness_images</code>
+              <span class="tool-operation">detailImage</span>
+            </div>
+            <p class="tool-desc">Retrieve all image URLs and copyright types for a content item.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- LANGUAGES -->
+    <section>
+      <h3 class="section-label">Supported Languages</h3>
+      <div class="lang-grid">
+        <div class="lang-card"><span class="lang-code">KOR</span><span class="lang-name">Korean</span></div>
+        <div class="lang-card"><span class="lang-code">ENG</span><span class="lang-name">English</span></div>
+        <div class="lang-card"><span class="lang-code">JPN</span><span class="lang-name">Japanese</span></div>
+        <div class="lang-card"><span class="lang-code">CHS</span><span class="lang-name">Simplified Chinese</span></div>
+        <div class="lang-card"><span class="lang-code">CHT</span><span class="lang-name">Traditional Chinese</span></div>
+        <div class="lang-card"><span class="lang-code">GER</span><span class="lang-name">German</span></div>
+        <div class="lang-card"><span class="lang-code">FRE</span><span class="lang-name">French</span></div>
+        <div class="lang-card"><span class="lang-code">SPN</span><span class="lang-name">Spanish</span></div>
+        <div class="lang-card"><span class="lang-code">RUS</span><span class="lang-name">Russian</span></div>
+      </div>
+      <p class="lang-note">Pass one of these as the <code>lang_div_cd</code> parameter in every tool call.</p>
+    </section>
+
+    <!-- META -->
+    <section class="meta-grid">
+      <div class="meta-card">
+        <p class="meta-label">Data Owner</p>
+        <p class="meta-value">Korea Tourism Organization</p>
+        <p class="meta-sub">KTO (한국관광공사)</p>
+      </div>
+      <div class="meta-card">
+        <p class="meta-label">API Provider</p>
+        <p class="meta-value">data.go.kr</p>
+        <p class="meta-sub">Korea Public Data Portal</p>
+      </div>
+      <div class="meta-card">
+        <p class="meta-label">Refresh Cycle</p>
+        <p class="meta-value">Once daily</p>
+        <p class="meta-sub">1,000 requests / day (dev)</p>
+      </div>
+      <div class="meta-card">
+        <p class="meta-label">Transport</p>
+        <p class="meta-value">SSE (Server-Sent Events)</p>
+        <p class="meta-sub">MCP protocol compatible</p>
+      </div>
+    </section>
+
+    <!-- FOOTER LINKS -->
+    <section class="footer-links">
+      <a href="https://www.data.go.kr/data/15144030/openapi.do" target="_blank" rel="noopener noreferrer">data.go.kr API Reference →</a>
+      <span class="sep">·</span>
+      <a href="https://github.com/leejaew/visitkorea-wellnesstourism-mcp" target="_blank" rel="noopener noreferrer">GitHub →</a>
+    </section>
+
+  </main>
+
+  <script>
+  function copyJson() {
+    const text = document.getElementById('connector-json').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+    });
+  }
+  </script>
+
+</body>
+</html>
