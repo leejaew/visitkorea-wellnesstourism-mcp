@@ -4,6 +4,7 @@ import re
 import time
 import xml.etree.ElementTree as ET
 from typing import Optional
+from urllib.parse import urlencode
 
 import httpx
 
@@ -267,12 +268,18 @@ class WellnessClient:
         if cached is not None:
             return cached
 
-        # Embed the already-URL-encoded serviceKey directly in the URL so that
-        # httpx does not re-encode it (which would break auth with a 401).
-        url = f"{BASE_URL}/{endpoint}?serviceKey={self.api_key}"
+        # Build the full URL manually.
+        # Root cause of HTTP 401: when httpx receives both a URL with an existing
+        # query string (?serviceKey=...) AND a params={} dict, it silently drops
+        # the URL's query string and only uses params={}.  serviceKey is never
+        # sent → upstream returns 401.
+        # Fix: urlencode the other params and concatenate everything into one URL
+        # string, then call client.get() with NO params= argument so httpx cannot
+        # interfere with the query string.
+        full_url = f"{BASE_URL}/{endpoint}?serviceKey={self.api_key}&{urlencode(params)}"
         client = _get_http_client()
         try:
-            response = await client.get(url, params=params)
+            response = await client.get(full_url)
             response.raise_for_status()
         except httpx.TimeoutException:
             raise WellnessAPIError("TIMEOUT", "Upstream API request timed out.")
