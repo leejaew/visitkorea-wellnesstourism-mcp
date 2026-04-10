@@ -247,8 +247,12 @@ class WellnessClient:
             )
 
     def _base_params(self, lang_div_cd: str, num_of_rows: int, page_no: int) -> dict:
+        # serviceKey is intentionally NOT included here.
+        # The data.go.kr "encoding key" is already URL-encoded; if placed in
+        # httpx's params={} dict it would be encoded a second time, mangling
+        # the key and causing HTTP 401.  It is embedded raw into the URL in
+        # _get() instead.
         return {
-            "serviceKey": self.api_key,
             "MobileOS": "ETC",
             "MobileApp": "WellnessTourismMCP",
             "_type": "json",
@@ -263,7 +267,9 @@ class WellnessClient:
         if cached is not None:
             return cached
 
-        url = f"{BASE_URL}/{endpoint}"
+        # Embed the already-URL-encoded serviceKey directly in the URL so that
+        # httpx does not re-encode it (which would break auth with a 401).
+        url = f"{BASE_URL}/{endpoint}?serviceKey={self.api_key}"
         client = _get_http_client()
         try:
             response = await client.get(url, params=params)
