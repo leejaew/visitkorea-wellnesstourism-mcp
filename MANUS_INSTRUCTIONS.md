@@ -4,7 +4,7 @@
 
 This MCP server provides direct, structured access to the **Korea Tourism Organization (KTO) Wellness Tourism dataset**, officially published on [data.go.kr](https://www.data.go.kr/data/15144030/openapi.do) under the service ID `WellnessTursmService`. The data covers wellness tourism destinations across all of South Korea — spas, hot springs, jjimjilbang (Korean sauna), traditional medicine clinics, healing meditation centres, beauty spas, and nature therapy sites.
 
-The server exposes **9 tools** over Server-Sent Events (SSE). Each tool wraps one API endpoint from the KTO open API, normalises the response, and returns a clean dict. No data is cached or synthesised — every call returns live data from the official KTO dataset.
+The server exposes **9 tools** over Streamable HTTP. Each tool wraps one API endpoint from the KTO open API, normalises the response, and returns a clean dict. No data is cached or synthesised — every call returns live data from the official KTO dataset.
 
 ---
 
