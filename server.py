@@ -1,6 +1,7 @@
 import sys
 import os
 from mcp.server.fastmcp import FastMCP
+from mcp.server.sse import TransportSecuritySettings
 
 from tools.wellness_tools import (
     get_legal_district_codes,
@@ -23,7 +24,16 @@ if not os.environ.get("WELLNESS_API_KEY_ENCODING"):
     )
     sys.exit(1)
 
-mcp = FastMCP("visitkorea-wellnesstourism")
+# DNS-rebinding protection defaults to localhost-only in MCP SDK 1.x.
+# This server is a public MCP endpoint behind Replit's TLS proxy, so we
+# disable the restriction so external agents (Manus AI, Claude, etc.) can
+# connect via the .replit.app domain without receiving HTTP 421.
+mcp = FastMCP(
+    "visitkorea-wellnesstourism",
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=False,
+    ),
+)
 
 
 @mcp.tool(name="get_legal_district_codes")
