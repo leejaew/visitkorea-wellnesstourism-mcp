@@ -1,5 +1,9 @@
 # VisitKorea Wellness Tourism MCP Server
 
+![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
+![MCP Transport](https://img.shields.io/badge/MCP-SSE-8B5CF6)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 An MCP (Model Context Protocol) server that wraps the **Korea Tourism Organization (KTO) Wellness Tourism Open API** (`WellnessTursmService`), exposing 9 structured tools that AI agents — including Claude and Manus AI — can call directly via Server-Sent Events (SSE). Supports 7 wellness themes and 9 languages.
 
 ## Features
