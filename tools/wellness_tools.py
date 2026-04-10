@@ -52,6 +52,8 @@ async def get_legal_district_codes(
             l_dong_regn_cd=l_dong_regn_cd,
             l_dong_list_yn=l_dong_list_yn,
         )
+    except ValueError as e:
+        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
     except WellnessAPIError as e:
         return {"error": True, "code": e.code, "message": e.message}
 
@@ -118,6 +120,8 @@ async def search_wellness_by_area(
             l_dong_signgu_cd=l_dong_signgu_cd,
             wellness_thema_cd=wellness_thema_cd,
         )
+    except ValueError as e:
+        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
     except WellnessAPIError as e:
         return {"error": True, "code": e.code, "message": e.message}
 
@@ -181,7 +185,7 @@ async def search_wellness_by_location(
             wellness_thema_cd=wellness_thema_cd,
         )
     except ValueError as e:
-        return {"error": True, "code": "INVALID_RADIUS", "message": str(e)}
+        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
     except WellnessAPIError as e:
         return {"error": True, "code": e.code, "message": e.message}
 
@@ -233,6 +237,8 @@ async def search_wellness_by_keyword(
             l_dong_signgu_cd=l_dong_signgu_cd,
             wellness_thema_cd=wellness_thema_cd,
         )
+    except ValueError as e:
+        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
     except WellnessAPIError as e:
         return {"error": True, "code": e.code, "message": e.message}
 
@@ -293,6 +299,8 @@ async def get_wellness_sync_list(
             old_content_id=old_content_id,
             wellness_thema_cd=wellness_thema_cd,
         )
+    except ValueError as e:
+        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
     except WellnessAPIError as e:
         return {"error": True, "code": e.code, "message": e.message}
 
@@ -332,6 +340,8 @@ async def get_wellness_common_info(
             num_of_rows=num_of_rows,
             page_no=page_no,
         )
+    except ValueError as e:
+        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
     except WellnessAPIError as e:
         return {"error": True, "code": e.code, "message": e.message}
 
@@ -377,6 +387,8 @@ async def get_wellness_intro_info(
             num_of_rows=num_of_rows,
             page_no=page_no,
         )
+    except ValueError as e:
+        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
     except WellnessAPIError as e:
         return {"error": True, "code": e.code, "message": e.message}
 
@@ -421,6 +433,8 @@ async def get_wellness_repeating_info(
             num_of_rows=num_of_rows,
             page_no=page_no,
         )
+    except ValueError as e:
+        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
     except WellnessAPIError as e:
         return {"error": True, "code": e.code, "message": e.message}
 
@@ -462,5 +476,7 @@ async def get_wellness_images(
             page_no=page_no,
             image_yn=image_yn,
         )
+    except ValueError as e:
+        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
     except WellnessAPIError as e:
         return {"error": True, "code": e.code, "message": e.message}
