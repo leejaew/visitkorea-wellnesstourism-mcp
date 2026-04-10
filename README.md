@@ -1,10 +1,10 @@
 # VisitKorea Wellness Tourism MCP Server
 
 ![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
-![MCP Transport](https://img.shields.io/badge/MCP-SSE-8B5CF6)
+![MCP Transport](https://img.shields.io/badge/MCP-Streamable_HTTP-8B5CF6)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An MCP (Model Context Protocol) server that wraps the **Korea Tourism Organization (KTO) Wellness Tourism Open API** (`WellnessTursmService`), exposing 9 structured tools that AI agents — including Claude and Manus AI — can call directly via Server-Sent Events (SSE). Supports 7 wellness themes and 9 languages.
+An MCP (Model Context Protocol) server that wraps the **Korea Tourism Organization (KTO) Wellness Tourism Open API** (`WellnessTursmService`), exposing 9 structured tools that AI agents — including Claude and Manus AI — can call directly via Streamable HTTP. Supports 7 wellness themes and 9 languages.
 
 ## Features
 
@@ -45,7 +45,7 @@ An MCP (Model Context Protocol) server that wraps the **Korea Tourism Organizati
 
 The server starts on the `PORT` environment variable (default `8080`).
 - Landing page: `http://localhost:8080/`
-- SSE endpoint: `http://localhost:8080/sse`
+- Streamable HTTP endpoint: `http://localhost:8080/mcp`
 
 ## MCP Connector JSON
 
@@ -55,15 +55,14 @@ Paste this into your AI agent's custom connector settings (Claude Desktop, Manus
 {
   "mcpServers": {
     "visitkorea-wellnesstourism": {
-      "type": "sse",
-      "url": "https://visitkorea-wellnesstourism-mcp.replit.app/sse",
-      "description": "VisitKorea Wellness Tourism MCP — search and retrieve Korean wellness tourism data (spas, jjimjilbang, healing meditation, traditional medicine, nature therapy, beauty spas) from the Korea Tourism Organization"
+      "type": "streamable-http",
+      "url": "https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/mcp"
     }
   }
 }
 ```
 
-Replace the URL with your deployed Replit project URL.
+Replace the URL with your own deployed Replit project URL if you forked the repository.
 
 ## Tool Reference
 
