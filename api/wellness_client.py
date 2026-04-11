@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import re
@@ -45,6 +46,12 @@ def _get_http_client() -> httpx.AsyncClient:
 _CACHE: dict[str, tuple[dict, float]] = {}
 _TTL_SHORT = 300.0    # 5 minutes — search / detail results
 _TTL_LONG  = 3600.0   # 1 hour    — district code lookups
+
+# Fix 5: Per-key asyncio locks to prevent cache stampede.
+# Without this, N concurrent requests for the same uncached key would all
+# fire upstream API requests simultaneously before any populates the cache,
+# wasting the 1,000 req/day quota and spiking latency.
+_FETCH_LOCKS: dict[str, asyncio.Lock] = {}
 
 
 def _cache_key(endpoint: str, params: dict) -> str:
@@ -264,33 +271,47 @@ class WellnessClient:
 
     async def _get(self, endpoint: str, params: dict) -> dict:
         key = _cache_key(endpoint, params)
+
+        # Fast path: return from cache without acquiring any lock.
         cached = _cache_get(key)
         if cached is not None:
             return cached
 
-        # Build the full URL manually.
-        # Root cause of HTTP 401: when httpx receives both a URL with an existing
-        # query string (?serviceKey=...) AND a params={} dict, it silently drops
-        # the URL's query string and only uses params={}.  serviceKey is never
-        # sent → upstream returns 401.
-        # Fix: urlencode the other params and concatenate everything into one URL
-        # string, then call client.get() with NO params= argument so httpx cannot
-        # interfere with the query string.
-        full_url = f"{BASE_URL}/{endpoint}?serviceKey={self.api_key}&{urlencode(params)}"
-        client = _get_http_client()
-        try:
-            response = await client.get(full_url)
-            response.raise_for_status()
-        except httpx.TimeoutException:
-            raise WellnessAPIError("TIMEOUT", "Upstream API request timed out.")
-        except httpx.HTTPStatusError as e:
-            raise WellnessAPIError("HTTP_ERROR", f"Upstream API returned HTTP {e.response.status_code}.")
-        except httpx.RequestError:
-            raise WellnessAPIError("NETWORK_ERROR", "Could not reach the upstream API.")
+        # Fix 5: Acquire a per-key lock so only one coroutine fires the upstream
+        # request for a given cache key at a time.  All other waiters re-check
+        # the cache once the lock is released and return the already-stored result,
+        # eliminating redundant upstream calls (cache stampede).
+        if key not in _FETCH_LOCKS:
+            _FETCH_LOCKS[key] = asyncio.Lock()
+        async with _FETCH_LOCKS[key]:
+            # Re-check inside the lock: a previous waiter may have populated it.
+            cached = _cache_get(key)
+            if cached is not None:
+                return cached
 
-        result = _parse_response(response.text)
-        _cache_set(key, result)
-        return result
+            # Build the full URL manually.
+            # Root cause of HTTP 401: when httpx receives both a URL with an existing
+            # query string (?serviceKey=...) AND a params={} dict, it silently drops
+            # the URL's query string and only uses params={}.  serviceKey is never
+            # sent → upstream returns 401.
+            # Fix: urlencode the other params and concatenate everything into one URL
+            # string, then call client.get() with NO params= argument so httpx cannot
+            # interfere with the query string.
+            full_url = f"{BASE_URL}/{endpoint}?serviceKey={self.api_key}&{urlencode(params)}"
+            client = _get_http_client()
+            try:
+                response = await client.get(full_url)
+                response.raise_for_status()
+            except httpx.TimeoutException:
+                raise WellnessAPIError("TIMEOUT", "Upstream API request timed out.")
+            except httpx.HTTPStatusError as e:
+                raise WellnessAPIError("HTTP_ERROR", f"Upstream API returned HTTP {e.response.status_code}.")
+            except httpx.RequestError:
+                raise WellnessAPIError("NETWORK_ERROR", "Could not reach the upstream API.")
+
+            result = _parse_response(response.text)
+            _cache_set(key, result)
+            return result
 
     # ── Tools ─────────────────────────────────────────────────────────────────
 
