@@ -15,6 +15,13 @@ async def serve_index(request: Request) -> FileResponse:
     return FileResponse(os.path.join(os.path.dirname(__file__), "static", "index.html"))
 
 
+async def serve_favicon(request: Request) -> FileResponse:
+    return FileResponse(
+        os.path.join(os.path.dirname(__file__), "static", "favicon.png"),
+        media_type="image/png",
+    )
+
+
 # Build the streamable HTTP app (this also lazily initialises the session manager).
 mcp_http_app = mcp.streamable_http_app()
 
@@ -32,6 +39,7 @@ async def lifespan(app):
 app = Starlette(
     routes=[
         Route("/", endpoint=serve_index),
+        Route("/favicon.png", endpoint=serve_favicon),
         Mount("/", app=mcp_http_app),
     ],
     lifespan=lifespan,
