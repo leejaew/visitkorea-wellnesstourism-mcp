@@ -3,16 +3,16 @@ import os
 from mcp.server.fastmcp import FastMCP
 from mcp.server.sse import TransportSecuritySettings
 
-from tools.wellness_tools import (
+from tools import (
     get_legal_district_codes,
-    search_wellness_by_area,
-    search_wellness_by_location,
-    search_wellness_by_keyword,
-    get_wellness_sync_list,
     get_wellness_common_info,
+    get_wellness_images,
     get_wellness_intro_info,
     get_wellness_repeating_info,
-    get_wellness_images,
+    get_wellness_sync_list,
+    search_wellness_by_area,
+    search_wellness_by_keyword,
+    search_wellness_by_location,
 )
 
 if not os.environ.get("WELLNESS_API_KEY_ENCODING"):
