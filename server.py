@@ -38,6 +38,13 @@ mcp = FastMCP(
     # SSE mode requires Accept to include text/event-stream and returns 406
     # without it, which the client interprets as an EOF/connection failure.
     json_response=True,
+    # Stateless mode: every request is fully self-contained, no in-memory
+    # session state.  Gateway-style clients (e.g. Manus AI) enumerate tools
+    # during connector setup and call tools much later; any server restart
+    # between those two phases invalidates stateful sessions and causes
+    # "Session not found" → "degraded mode" errors on the client side.
+    # Stateless removes that dependency entirely.
+    stateless_http=True,
 )
 
 
