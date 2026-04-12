@@ -487,7 +487,7 @@
               <code class="tool-name">get_legal_district_codes</code>
               <span class="tool-operation">ldongCode</span>
             </div>
-            <p class="tool-desc">Look up legal administrative district codes (provinces and cities) — required before region-based searches.</p>
+            <p class="tool-desc">Look up legal administrative district codes (provinces and cities) — useful for finding the codes needed in region-based searches.</p>
           </div>
         </div>
 
@@ -612,14 +612,14 @@
         <p class="meta-sub">Korea Public Data Portal</p>
       </div>
       <div class="meta-card">
-        <p class="meta-label">Refresh Cycle</p>
-        <p class="meta-value">Once daily</p>
-        <p class="meta-sub">1,000 requests / day (dev)</p>
+        <p class="meta-label">Response Cache</p>
+        <p class="meta-value">5 min / 1 hour</p>
+        <p class="meta-sub">Upstream quota: 1,000 req/day</p>
       </div>
       <div class="meta-card">
         <p class="meta-label">Transport</p>
         <p class="meta-value">Streamable HTTP</p>
-        <p class="meta-sub">MCP protocol compatible</p>
+        <p class="meta-sub">JSON response · Stateless</p>
       </div>
     </section>
 
@@ -653,7 +653,7 @@
 
 This MCP server provides direct, structured access to the **Korea Tourism Organization (KTO) Wellness Tourism dataset**, officially published on [data.go.kr](https://www.data.go.kr/data/15144030/openapi.do) under the service ID `WellnessTursmService`. The data covers wellness tourism destinations across all of South Korea — spas, hot springs, jjimjilbang (Korean sauna), traditional medicine clinics, healing meditation centres, beauty spas, and nature therapy sites.
 
-The server exposes **9 tools** over Streamable HTTP. Each tool wraps one API endpoint from the KTO open API, normalises the response, and returns a clean dict. No data is cached or synthesised — every call returns live data from the official KTO dataset.
+The server exposes **9 tools** over Streamable HTTP. Each tool wraps one API endpoint from the KTO open API, normalises the response, and returns a clean dict. Responses are cached server-side for 5 minutes (district codes for 1 hour) to conserve the upstream daily quota; all data originates from the official KTO dataset.
 
 ---
 
