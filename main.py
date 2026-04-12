@@ -139,7 +139,7 @@ async def lifespan(app):
         yield
     # Close the shared upstream HTTP connection pool on shutdown to release
     # file descriptors and avoid "connection reset" noise in system logs.
-    from api.wellness_client import _http_client
+    from api.config import _http_client
     if _http_client is not None and not _http_client.is_closed:
         await _http_client.aclose()
 
