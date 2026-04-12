@@ -33,6 +33,11 @@ mcp = FastMCP(
     transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=False,
     ),
+    # Use pure JSON responses instead of SSE streaming.
+    # MCP clients like manus-mcp-cli send Accept: application/json only;
+    # SSE mode requires Accept to include text/event-stream and returns 406
+    # without it, which the client interprets as an EOF/connection failure.
+    json_response=True,
 )
 
 
