@@ -7,7 +7,7 @@
 
 An MCP (Model Context Protocol) server that wraps the **Korea Tourism Organization (KTO) Wellness Tourism Open API** (`WellnessTursmService`), exposing 9 structured tools that AI agents — including Claude, Manus AI, and any MCP-compatible client — can call directly via Streamable HTTP. Supports 7 wellness themes and 9 languages.
 
-**Live endpoint:** `https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/mcp`
+**Live endpoint:** `https://<your-replit-url>/mcp`
 
 ---
 
@@ -90,7 +90,7 @@ In Manus AI's connector settings, add a custom MCP server:
 | Field | Value |
 |-------|-------|
 | Type | `streamable-http` |
-| URL | `https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/mcp` |
+| URL | `https://<your-replit-url>/mcp` |
 | Authentication | None |
 
 ### Claude Desktop / Other MCP clients
@@ -102,7 +102,7 @@ Paste into your client's MCP configuration:
   "mcpServers": {
     "visitkorea-wellnesstourism": {
       "type": "streamable-http",
-      "url": "https://leejaew-visitkorea-wellnesstourism-mcp.replit.app/mcp"
+      "url": "https://<your-replit-url>/mcp"
     }
   }
 }
