@@ -68,7 +68,6 @@ On Replit, add it to **Secrets** (not environment variables) under the key name 
 ### 5. Run the server
 
 ```bash
-cd artifacts/wellness-mcp
 python main.py
 ```
 
@@ -398,25 +397,33 @@ get_wellness_images(content_id="702551", lang_div_cd="ENG")
 ## Project Structure
 
 ```
-artifacts/wellness-mcp/
+visitkorea-wellnesstourism-mcp/
 ├── main.py                  # Replit entrypoint — Starlette app, rate limiting, security headers, lifespan
 ├── server.py                # FastMCP server definition with 9 registered tool wrappers
 ├── api/
 │   ├── __init__.py          # Re-exports WellnessClient, WellnessAPIError
-│   ├── config.py            # BASE_URL, HTTP timeout constants, shared httpx client factory
-│   ├── cache.py             # TTL response cache with per-key stampede locks
-│   ├── validation.py        # Allowed-value sets and parameter guard functions
+│   ├── config.py            # Checked environment settings, transport policy, HTTP client factory
+│   ├── cache.py             # Bounded TTL cache with copy isolation and stampede locks
+│   ├── validation.py        # Strict input validation and cross-field guards
 │   ├── parser.py            # WellnessAPIError, JSON/XML response normaliser
-│   └── client.py            # WellnessClient — async httpx client with 9 API methods
+│   └── client.py            # Injected async KTO API client with 9 operations
+├── services/
+│   └── wellness.py          # Application service boundary and sanitized error mapping
 ├── tools/
 │   ├── __init__.py          # Re-exports all 9 tool functions
 │   ├── catalog.py           # get_legal_district_codes, get_wellness_sync_list
 │   ├── search.py            # search_wellness_by_area/location/keyword
 │   └── detail.py            # get_wellness_common/intro/repeating_info, get_wellness_images
+├── tests/
+│   ├── test_cache.py        # Cache isolation, expiry, and secret-safe keys
+│   ├── test_client.py       # Upstream response, timeout, and validation behavior
+│   ├── test_contracts.py    # Public MCP tool names, schemas, and error contracts
+│   └── test_validation.py   # Input bounds and cross-field validation
 ├── static/
 │   ├── index.html           # Developer landing page
 │   └── favicon.png          # Server icon
 ├── requirements.txt
+├── .env.example             # Local configuration template without secrets
 ├── MANUS_INSTRUCTIONS.md    # Detailed usage guide for Manus AI agents
 ├── README.md
 └── LICENSE
@@ -446,6 +453,8 @@ This server uses **MCP Streamable HTTP** transport with two non-default settings
 | `stateless_http` | `True` | Gateway-style clients enumerate tools at connector setup time and execute tool calls much later. Stateful sessions are lost whenever the server restarts, causing "Session not found" errors. Stateless mode makes every request fully self-contained — no session IDs are issued or required. |
 
 The server is compatible with any MCP 2025-03-26 client that sends `Accept: application/json`.
+The implementation uses MCP Python SDK 1.27.0 conventions and preserves stateless
+Streamable HTTP behavior for existing clients.
 
 ---
 
@@ -455,8 +464,10 @@ The server is compatible with any MCP 2025-03-26 client that sends `Accept: appl
 |---------|---------|
 | Rate limiting | 60 requests per 60 seconds per IP on `/mcp`; returns HTTP 429 with `Retry-After` |
 | Security headers | `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` |
-| API key redaction | `serviceKey=` is replaced with `[REDACTED]` in all uvicorn access and error logs |
-| Cache stampede protection | Per-key `asyncio.Lock` prevents multiple concurrent upstream calls for the same request |
+| Host and Origin validation | MCP SDK DNS rebinding protection is enabled with explicit Replit and configured allowlists |
+| API key redaction | The configured key and `serviceKey=` query values are replaced with `[REDACTED]` in server and HTTP client logs |
+| Cache protection | Bounded 512-entry TTL cache, deep-copy isolation, and per-key locks prevent memory growth, mutation leaks, and duplicate upstream calls |
+| Redirect policy | Upstream HTTP redirects are disabled so the API key is not forwarded to another host |
 
 ---
 
@@ -466,7 +477,7 @@ The server is compatible with any MCP 2025-03-26 client that sends `Accept: appl
 |------|--------|
 | **`content_type_id` differs by language** | Tourist attractions are `12` for `KOR` but `76` for `ENG`/`JPN`/etc. Using the wrong ID returns empty results, not an error. |
 | **GPS radius hard limit** | `radius` for `search_wellness_by_location` must not exceed `20000` metres. |
-| **District code dependency** | `l_dong_signgu_cd` is ignored by the API unless `l_dong_regn_cd` is also provided. |
+| **District code dependency** | `l_dong_signgu_cd` requires `l_dong_regn_cd`; invalid combinations return `INVALID_PARAM`. |
 | **`content_type_id` is required** | Both `get_wellness_intro_info` and `get_wellness_repeating_info` require `content_type_id`. Always read it from the search result and pass it through. |
 | **Homepage field may contain HTML** | The `homepage` field from `get_wellness_common_info` sometimes contains raw `<a href="...">` tags. Extract the URL before displaying. |
 | **Korean data is most complete** | Multilingual datasets may have fewer records or missing fields. If English returns no results, retry with `lang_div_cd="KOR"`. |
@@ -474,9 +485,26 @@ The server is compatible with any MCP 2025-03-26 client that sends `Accept: appl
 
 ---
 
+## Testing
+
+The test suite uses Python's standard library test runner and does not call the
+live KTO API:
+
+```bash
+python -m unittest discover -s tests -v
+python -m compileall -q .
+```
+
+The tests cover public MCP tool names and schemas, validation limits, upstream
+error mapping, cache behavior, and sanitization of unexpected service failures.
+
+---
+
 ## Contributing
 
-Contributions are welcome. Please open an issue before submitting a pull request. Ensure all changes are tested against the live API and that no API keys are committed to the repository.
+Contributions are welcome. Please open an issue before submitting a pull request.
+Run the local test suite before submitting changes. Live API checks are optional
+and must never record or commit API keys.
 
 ---
 

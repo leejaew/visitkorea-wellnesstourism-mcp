@@ -1,24 +1,26 @@
-import os
 from typing import Optional
 from urllib.parse import urlencode
 
 import httpx
 
 from .cache import cache_get, cache_key, cache_set, get_fetch_lock
-from .config import BASE_URL, get_http_client
+from .config import BASE_URL
 from .parser import WellnessAPIError, extract_items, parse_response
 from .validation import (
     VALID_IMAGE_YN,
     VALID_L_DONG_LIST_YN,
     VALID_SHOWFLAG,
     check_arrange,
+    check_content_type_id,
     check_content_id,
+    check_coordinates,
     check_date,
     check_keyword,
     check_lang,
     check_page,
     check_radius,
     check_region_cd,
+    check_region_pair,
     check_rows,
     check_theme,
 )
@@ -31,13 +33,11 @@ class WellnessClient:
     All upstream requests are validated, cached, and protected against stampede.
     """
 
-    def __init__(self) -> None:
-        self.api_key = os.environ.get("WELLNESS_API_KEY_ENCODING")
-        if not self.api_key:
-            raise RuntimeError(
-                "WELLNESS_API_KEY_ENCODING environment variable is not set. "
-                "Please configure this Replit Secret before starting the server."
-            )
+    def __init__(self, api_key: str, http_client: httpx.AsyncClient) -> None:
+        if not api_key:
+            raise ValueError("api_key must not be empty.")
+        self.api_key = api_key
+        self.http_client = http_client
 
     def _base_params(self, lang_div_cd: str, num_of_rows: int, page_no: int) -> dict:
         # serviceKey is NOT included here — the encoding key must be embedded
@@ -74,9 +74,8 @@ class WellnessClient:
                 f"{BASE_URL}/{endpoint}"
                 f"?serviceKey={self.api_key}&{urlencode(params)}"
             )
-            client = get_http_client()
             try:
-                response = await client.get(full_url)
+                response = await self.http_client.get(full_url)
                 response.raise_for_status()
             except httpx.TimeoutException:
                 raise WellnessAPIError("TIMEOUT", "Upstream API request timed out.")
@@ -141,7 +140,10 @@ class WellnessClient:
         wellness_thema_cd = check_theme(wellness_thema_cd)
         mdfcn_dt         = check_date(mdfcn_dt)
         l_dong_regn_cd   = check_region_cd(l_dong_regn_cd)
-        l_dong_signgu_cd = check_region_cd(l_dong_signgu_cd)
+        l_dong_regn_cd, l_dong_signgu_cd = check_region_pair(
+            l_dong_regn_cd, l_dong_signgu_cd
+        )
+        content_type_id = check_content_type_id(content_type_id)
         if showflag is not None:
             showflag = showflag.strip()
             if showflag not in VALID_SHOWFLAG:
@@ -182,8 +184,10 @@ class WellnessClient:
         arrange          = check_arrange(arrange, location=False)
         wellness_thema_cd = check_theme(wellness_thema_cd)
         mdfcn_dt         = check_date(mdfcn_dt)
-        l_dong_regn_cd   = check_region_cd(l_dong_regn_cd)
-        l_dong_signgu_cd = check_region_cd(l_dong_signgu_cd)
+        l_dong_regn_cd, l_dong_signgu_cd = check_region_pair(
+            l_dong_regn_cd, l_dong_signgu_cd
+        )
+        content_type_id = check_content_type_id(content_type_id)
 
         params = self._base_params(lang_div_cd, num_of_rows, page_no)
         if arrange:           params["arrange"]         = arrange
@@ -214,16 +218,15 @@ class WellnessClient:
         lang_div_cd      = check_lang(lang_div_cd)
         num_of_rows      = check_rows(num_of_rows)
         page_no          = check_page(page_no)
-        radius           = check_radius(int(radius))
+        radius           = check_radius(radius)
         arrange          = check_arrange(arrange, location=True)
         wellness_thema_cd = check_theme(wellness_thema_cd)
         mdfcn_dt         = check_date(mdfcn_dt)
-        l_dong_regn_cd   = check_region_cd(l_dong_regn_cd)
-        l_dong_signgu_cd = check_region_cd(l_dong_signgu_cd)
-        if not isinstance(map_x, (int, float)) or not (-180 <= map_x <= 180):
-            raise ValueError("map_x (longitude) must be a number between -180 and 180.")
-        if not isinstance(map_y, (int, float)) or not (-90 <= map_y <= 90):
-            raise ValueError("map_y (latitude) must be a number between -90 and 90.")
+        l_dong_regn_cd, l_dong_signgu_cd = check_region_pair(
+            l_dong_regn_cd, l_dong_signgu_cd
+        )
+        content_type_id = check_content_type_id(content_type_id)
+        map_x, map_y = check_coordinates(map_x, map_y)
 
         params = self._base_params(lang_div_cd, num_of_rows, page_no)
         params["mapX"]   = map_x
@@ -257,8 +260,10 @@ class WellnessClient:
         page_no          = check_page(page_no)
         arrange          = check_arrange(arrange, location=False)
         wellness_thema_cd = check_theme(wellness_thema_cd)
-        l_dong_regn_cd   = check_region_cd(l_dong_regn_cd)
-        l_dong_signgu_cd = check_region_cd(l_dong_signgu_cd)
+        l_dong_regn_cd, l_dong_signgu_cd = check_region_pair(
+            l_dong_regn_cd, l_dong_signgu_cd
+        )
+        content_type_id = check_content_type_id(content_type_id)
 
         params = self._base_params(lang_div_cd, num_of_rows, page_no)
         params["keyword"] = keyword
@@ -299,6 +304,9 @@ class WellnessClient:
         page_no: int = 1,
     ) -> dict:
         content_id      = check_content_id(content_id)
+        content_type_id = check_content_type_id(content_type_id)
+        if content_type_id is None:
+            raise ValueError("content_type_id is required.")
         lang_div_cd     = check_lang(lang_div_cd)
         num_of_rows     = check_rows(num_of_rows)
         page_no         = check_page(page_no)
@@ -318,6 +326,9 @@ class WellnessClient:
         page_no: int = 1,
     ) -> dict:
         content_id      = check_content_id(content_id)
+        content_type_id = check_content_type_id(content_type_id)
+        if content_type_id is None:
+            raise ValueError("content_type_id is required.")
         lang_div_cd     = check_lang(lang_div_cd)
         num_of_rows     = check_rows(num_of_rows)
         page_no         = check_page(page_no)

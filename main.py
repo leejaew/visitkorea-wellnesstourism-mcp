@@ -3,7 +3,7 @@ import logging
 import os
 import re
 import time
-from collections import deque
+from collections import OrderedDict, deque
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -13,9 +13,14 @@ from starlette.responses import FileResponse, Response
 from starlette.routing import Mount, Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from api import WellnessClient
+from api.config import Settings, create_http_client
 from server import mcp
+from services import WellnessService, configure_service
 
-PORT = int(os.environ.get("PORT", 8080))
+SETTINGS = Settings.from_env()
+HTTP_CLIENT = create_http_client()
+configure_service(WellnessService(WellnessClient(SETTINGS.api_key, HTTP_CLIENT)))
 
 # ── Fix 2: Redact serviceKey from all uvicorn log records ─────────────────────
 # The full upstream URL (including serviceKey=...) can appear in uvicorn access
@@ -25,19 +30,22 @@ _KEY_RE = re.compile(r"(serviceKey=)[^&\s\"']+", re.IGNORECASE)
 
 
 class _RedactKeyFilter(logging.Filter):
+    def __init__(self, api_key: str) -> None:
+        super().__init__()
+        self.api_key = api_key
+
     def filter(self, record: logging.LogRecord) -> bool:
-        record.msg = _KEY_RE.sub(r"\1[REDACTED]", str(record.msg))
-        if record.args:
-            args = record.args if isinstance(record.args, tuple) else (record.args,)
-            record.args = tuple(
-                _KEY_RE.sub(r"\1[REDACTED]", a) if isinstance(a, str) else a
-                for a in args
-            )
+        message = _KEY_RE.sub(r"\1[REDACTED]", record.getMessage())
+        if self.api_key:
+            message = message.replace(self.api_key, "[REDACTED]")
+        record.msg = message
+        record.args = ()
         return True
 
 
-for _logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
-    logging.getLogger(_logger_name).addFilter(_RedactKeyFilter())
+_redaction_filter = _RedactKeyFilter(SETTINGS.api_key)
+for _logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error", "httpx", "services"):
+    logging.getLogger(_logger_name).addFilter(_redaction_filter)
 
 
 # ── Fix 4: Per-IP rate limiter on /mcp ───────────────────────────────────────
@@ -45,7 +53,8 @@ for _logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
 # endpoint, protecting the 1,000 req/day upstream quota from exhaustion.
 _RATE_WINDOW = 60   # seconds
 _RATE_MAX    = 60   # requests per window per IP (1 req/s average — plenty for agents)
-_rate_store: dict[str, deque] = {}
+_MAX_TRACKED_CLIENTS = 10_000
+_rate_store: OrderedDict[str, deque] = OrderedDict()
 
 
 class RateLimitMiddleware:
@@ -57,7 +66,10 @@ class RateLimitMiddleware:
             client = scope.get("client")
             ip = client[0] if client else "unknown"
             now = time.monotonic()
+            if ip not in _rate_store and len(_rate_store) >= _MAX_TRACKED_CLIENTS:
+                _rate_store.popitem(last=False)
             window = _rate_store.setdefault(ip, deque())
+            _rate_store.move_to_end(ip)
             while window and now - window[0] > _RATE_WINDOW:
                 window.popleft()
             if len(window) >= _RATE_MAX:
@@ -135,13 +147,13 @@ mcp_http_app = mcp.streamable_http_app()
 # ── Fix 6: Clean HTTP client shutdown ─────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app):
-    async with mcp.session_manager.run():
-        yield
-    # Close the shared upstream HTTP connection pool on shutdown to release
-    # file descriptors and avoid "connection reset" noise in system logs.
-    from api.config import _http_client
-    if _http_client is not None and not _http_client.is_closed:
-        await _http_client.aclose()
+    try:
+        async with mcp.session_manager.run():
+            yield
+    finally:
+        # Close the shared upstream HTTP connection pool on every shutdown path.
+        if not HTTP_CLIENT.is_closed:
+            await HTTP_CLIENT.aclose()
 
 
 app = Starlette(
@@ -160,9 +172,9 @@ if __name__ == "__main__":
     # Fix 7: Use uvloop when available — 2-4x faster event loop for I/O workloads.
     _loop = "uvloop" if importlib.util.find_spec("uvloop") else "asyncio"
     uvicorn.run(
-        "main:app",
+        app,
         host="0.0.0.0",
-        port=PORT,
+        port=SETTINGS.port,
         loop=_loop,
         access_log=True,
     )

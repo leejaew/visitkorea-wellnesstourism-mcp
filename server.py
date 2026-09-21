@@ -1,8 +1,9 @@
-import sys
-import os
+from typing import Annotated
 from mcp.server.fastmcp import FastMCP
 from mcp.server.sse import TransportSecuritySettings
+from pydantic import Field
 
+from api.config import transport_security_policy
 from tools import (
     get_legal_district_codes,
     get_wellness_common_info,
@@ -15,23 +16,13 @@ from tools import (
     search_wellness_by_location,
 )
 
-if not os.environ.get("WELLNESS_API_KEY_ENCODING"):
-    print(
-        "ERROR: WELLNESS_API_KEY_ENCODING environment variable is not set.\n"
-        "Please configure this Replit Secret before starting the server.\n"
-        "Obtain your API key from https://www.data.go.kr/data/15144030/openapi.do",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-
-# DNS-rebinding protection defaults to localhost-only in MCP SDK 1.x.
-# This server is a public MCP endpoint behind Replit's TLS proxy, so we
-# disable the restriction so external agents (Manus AI, Claude, etc.) can
-# connect via the .replit.app domain without receiving HTTP 421.
+_hosts, _origins = transport_security_policy()
 mcp = FastMCP(
     "visitkorea-wellnesstourism",
     transport_security=TransportSecuritySettings(
-        enable_dns_rebinding_protection=False,
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=list(_hosts),
+        allowed_origins=list(_origins),
     ),
     # Use pure JSON responses instead of SSE streaming.
     # MCP clients like manus-mcp-cli send Accept: application/json only;
@@ -51,8 +42,8 @@ mcp = FastMCP(
 @mcp.tool(name="get_legal_district_codes")
 async def _get_legal_district_codes(
     lang_div_cd: str = "KOR",
-    num_of_rows: int = 10,
-    page_no: int = 1,
+    num_of_rows: Annotated[int, Field(ge=1, le=100)] = 10,
+    page_no: Annotated[int, Field(ge=1, le=10_000)] = 1,
     l_dong_regn_cd: str = "",
     l_dong_list_yn: str = "",
 ) -> dict:
@@ -83,8 +74,8 @@ async def _get_legal_district_codes(
 @mcp.tool(name="search_wellness_by_area")
 async def _search_wellness_by_area(
     lang_div_cd: str = "KOR",
-    num_of_rows: int = 10,
-    page_no: int = 1,
+    num_of_rows: Annotated[int, Field(ge=1, le=100)] = 10,
+    page_no: Annotated[int, Field(ge=1, le=10_000)] = 1,
     arrange: str = "",
     content_type_id: str = "",
     mdfcn_dt: str = "",
@@ -127,12 +118,12 @@ async def _search_wellness_by_area(
 
 @mcp.tool(name="search_wellness_by_location")
 async def _search_wellness_by_location(
-    map_x: float,
-    map_y: float,
-    radius: int,
+    map_x: Annotated[float, Field(ge=-180, le=180, allow_inf_nan=False)],
+    map_y: Annotated[float, Field(ge=-90, le=90, allow_inf_nan=False)],
+    radius: Annotated[int, Field(ge=1, le=20_000)],
     lang_div_cd: str = "KOR",
-    num_of_rows: int = 10,
-    page_no: int = 1,
+    num_of_rows: Annotated[int, Field(ge=1, le=100)] = 10,
+    page_no: Annotated[int, Field(ge=1, le=10_000)] = 1,
     arrange: str = "",
     content_type_id: str = "",
     mdfcn_dt: str = "",
@@ -178,10 +169,10 @@ async def _search_wellness_by_location(
 
 @mcp.tool(name="search_wellness_by_keyword")
 async def _search_wellness_by_keyword(
-    keyword: str,
+    keyword: Annotated[str, Field(min_length=1, max_length=100)],
     lang_div_cd: str = "KOR",
-    num_of_rows: int = 10,
-    page_no: int = 1,
+    num_of_rows: Annotated[int, Field(ge=1, le=100)] = 10,
+    page_no: Annotated[int, Field(ge=1, le=10_000)] = 1,
     arrange: str = "",
     content_type_id: str = "",
     l_dong_regn_cd: str = "",
@@ -220,8 +211,8 @@ async def _search_wellness_by_keyword(
 @mcp.tool(name="get_wellness_sync_list")
 async def _get_wellness_sync_list(
     lang_div_cd: str = "KOR",
-    num_of_rows: int = 10,
-    page_no: int = 1,
+    num_of_rows: Annotated[int, Field(ge=1, le=100)] = 10,
+    page_no: Annotated[int, Field(ge=1, le=10_000)] = 1,
     arrange: str = "",
     content_type_id: str = "",
     showflag: str = "",
@@ -269,10 +260,10 @@ async def _get_wellness_sync_list(
 
 @mcp.tool(name="get_wellness_common_info")
 async def _get_wellness_common_info(
-    content_id: str,
+    content_id: Annotated[str, Field(pattern=r"^\d{1,15}$")],
     lang_div_cd: str = "KOR",
-    num_of_rows: int = 10,
-    page_no: int = 1,
+    num_of_rows: Annotated[int, Field(ge=1, le=100)] = 10,
+    page_no: Annotated[int, Field(ge=1, le=10_000)] = 1,
 ) -> dict:
     """
     Retrieve the full common detail record for a specific wellness tourism content item.
@@ -301,11 +292,11 @@ async def _get_wellness_common_info(
 
 @mcp.tool(name="get_wellness_intro_info")
 async def _get_wellness_intro_info(
-    content_id: str,
-    content_type_id: str,
+    content_id: Annotated[str, Field(pattern=r"^\d{1,15}$")],
+    content_type_id: Annotated[str, Field(pattern=r"^\d{1,3}$")],
     lang_div_cd: str = "KOR",
-    num_of_rows: int = 10,
-    page_no: int = 1,
+    num_of_rows: Annotated[int, Field(ge=1, le=100)] = 10,
+    page_no: Annotated[int, Field(ge=1, le=10_000)] = 1,
 ) -> dict:
     """
     Retrieve type-specific introductory details for a wellness tourism content item.
@@ -340,11 +331,11 @@ async def _get_wellness_intro_info(
 
 @mcp.tool(name="get_wellness_repeating_info")
 async def _get_wellness_repeating_info(
-    content_id: str,
-    content_type_id: str,
+    content_id: Annotated[str, Field(pattern=r"^\d{1,15}$")],
+    content_type_id: Annotated[str, Field(pattern=r"^\d{1,3}$")],
     lang_div_cd: str = "KOR",
-    num_of_rows: int = 10,
-    page_no: int = 1,
+    num_of_rows: Annotated[int, Field(ge=1, le=100)] = 10,
+    page_no: Annotated[int, Field(ge=1, le=10_000)] = 1,
 ) -> dict:
     """
     Retrieve repeating structured information for a wellness tourism content item.
@@ -375,10 +366,10 @@ async def _get_wellness_repeating_info(
 
 @mcp.tool(name="get_wellness_images")
 async def _get_wellness_images(
-    content_id: str,
+    content_id: Annotated[str, Field(pattern=r"^\d{1,15}$")],
     lang_div_cd: str = "KOR",
-    num_of_rows: int = 10,
-    page_no: int = 1,
+    num_of_rows: Annotated[int, Field(ge=1, le=100)] = 10,
+    page_no: Annotated[int, Field(ge=1, le=10_000)] = 1,
     image_yn: str = "Y",
 ) -> dict:
     """

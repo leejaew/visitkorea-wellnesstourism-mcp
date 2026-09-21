@@ -18,6 +18,7 @@ _RE_REGION_CD   = re.compile(r"^\d{1,8}$")
 
 # ── Scalar limits ─────────────────────────────────────────────────────────────
 MAX_ROWS        = 100
+MAX_PAGE        = 10_000
 MAX_KEYWORD_LEN = 100
 MAX_RADIUS_M    = 20_000
 
@@ -32,14 +33,14 @@ def check_lang(v: str) -> str:
 
 
 def check_rows(n: int) -> int:
-    if not isinstance(n, int) or n < 1:
-        n = 1
-    return min(n, MAX_ROWS)
+    if isinstance(n, bool) or not isinstance(n, int) or not 1 <= n <= MAX_ROWS:
+        raise ValueError(f"num_of_rows must be an integer between 1 and {MAX_ROWS}.")
+    return n
 
 
 def check_page(n: int) -> int:
-    if not isinstance(n, int) or n < 1:
-        n = 1
+    if isinstance(n, bool) or not isinstance(n, int) or not 1 <= n <= MAX_PAGE:
+        raise ValueError(f"page_no must be an integer between 1 and {MAX_PAGE}.")
     return n
 
 
@@ -97,8 +98,47 @@ def check_keyword(v: str) -> str:
 
 
 def check_radius(v: int) -> int:
-    if not isinstance(v, int) or v < 1:
+    if isinstance(v, bool) or not isinstance(v, int) or v < 1:
         raise ValueError("radius must be a positive integer (metres).")
     if v > MAX_RADIUS_M:
         raise ValueError(f"radius must not exceed {MAX_RADIUS_M} metres (20 km).")
     return v
+
+
+def check_content_type_id(v: Optional[str]) -> Optional[str]:
+    if not v:
+        return None
+    value = v.strip()
+    if not value.isdigit() or not 1 <= len(value) <= 3:
+        raise ValueError("content_type_id must contain 1 to 3 digits.")
+    return value
+
+
+def check_coordinates(map_x: float, map_y: float) -> tuple[float, float]:
+    import math
+
+    if (
+        isinstance(map_x, bool)
+        or not isinstance(map_x, (int, float))
+        or not math.isfinite(map_x)
+        or not -180 <= map_x <= 180
+    ):
+        raise ValueError("map_x (longitude) must be a finite number between -180 and 180.")
+    if (
+        isinstance(map_y, bool)
+        or not isinstance(map_y, (int, float))
+        or not math.isfinite(map_y)
+        or not -90 <= map_y <= 90
+    ):
+        raise ValueError("map_y (latitude) must be a finite number between -90 and 90.")
+    return float(map_x), float(map_y)
+
+
+def check_region_pair(
+    region: Optional[str], district: Optional[str]
+) -> tuple[Optional[str], Optional[str]]:
+    checked_region = check_region_cd(region)
+    checked_district = check_region_cd(district)
+    if checked_district and not checked_region:
+        raise ValueError("l_dong_signgu_cd requires l_dong_regn_cd.")
+    return checked_region, checked_district

@@ -1,15 +1,6 @@
 from typing import Optional
 
-from api import WellnessAPIError, WellnessClient
-
-_client: Optional[WellnessClient] = None
-
-
-def _get_client() -> WellnessClient:
-    global _client
-    if _client is None:
-        _client = WellnessClient()
-    return _client
+from services import get_service
 
 
 async def search_wellness_by_area(
@@ -49,8 +40,8 @@ async def search_wellness_by_area(
     Returns dict with items (contentId, title, baseAddr, mapX, mapY, tel,
     orgImage, wellnessThemaCd, etc.), totalCount, pageNo, numOfRows.
     """
-    try:
-        return await _get_client().search_wellness_by_area(
+    return await get_service().invoke(
+        "search_wellness_by_area",
             lang_div_cd=lang_div_cd,
             num_of_rows=num_of_rows,
             page_no=page_no,
@@ -60,11 +51,7 @@ async def search_wellness_by_area(
             l_dong_regn_cd=l_dong_regn_cd,
             l_dong_signgu_cd=l_dong_signgu_cd,
             wellness_thema_cd=wellness_thema_cd,
-        )
-    except ValueError as e:
-        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
-    except WellnessAPIError as e:
-        return {"error": True, "code": e.code, "message": e.message}
+    )
 
 
 async def search_wellness_by_location(
@@ -103,8 +90,8 @@ async def search_wellness_by_location(
     Returns dict with items (same as search_wellness_by_area plus "dist" in metres),
     totalCount, pageNo, numOfRows.
     """
-    try:
-        return await _get_client().search_wellness_by_location(
+    return await get_service().invoke(
+        "search_wellness_by_location",
             map_x=map_x,
             map_y=map_y,
             radius=radius,
@@ -117,11 +104,7 @@ async def search_wellness_by_location(
             l_dong_regn_cd=l_dong_regn_cd,
             l_dong_signgu_cd=l_dong_signgu_cd,
             wellness_thema_cd=wellness_thema_cd,
-        )
-    except ValueError as e:
-        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
-    except WellnessAPIError as e:
-        return {"error": True, "code": e.code, "message": e.message}
+    )
 
 
 async def search_wellness_by_keyword(
@@ -153,8 +136,8 @@ async def search_wellness_by_keyword(
     Returns dict with items (same fields as search_wellness_by_area),
     totalCount, pageNo, numOfRows.
     """
-    try:
-        return await _get_client().search_wellness_by_keyword(
+    return await get_service().invoke(
+        "search_wellness_by_keyword",
             keyword=keyword,
             lang_div_cd=lang_div_cd,
             num_of_rows=num_of_rows,
@@ -164,8 +147,4 @@ async def search_wellness_by_keyword(
             l_dong_regn_cd=l_dong_regn_cd,
             l_dong_signgu_cd=l_dong_signgu_cd,
             wellness_thema_cd=wellness_thema_cd,
-        )
-    except ValueError as e:
-        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
-    except WellnessAPIError as e:
-        return {"error": True, "code": e.code, "message": e.message}
+    )

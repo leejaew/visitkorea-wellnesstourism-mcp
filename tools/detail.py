@@ -1,15 +1,6 @@
 from typing import Optional
 
-from api import WellnessAPIError, WellnessClient
-
-_client: Optional[WellnessClient] = None
-
-
-def _get_client() -> WellnessClient:
-    global _client
-    if _client is None:
-        _client = WellnessClient()
-    return _client
+from services import get_service
 
 
 async def get_wellness_common_info(
@@ -37,17 +28,13 @@ async def get_wellness_common_info(
     wellnessThemaCd). Note: "homepage" may contain raw HTML anchor tags.
     Plus totalCount, pageNo, numOfRows.
     """
-    try:
-        return await _get_client().get_wellness_common_info(
+    return await get_service().invoke(
+        "get_wellness_common_info",
             content_id=content_id,
             lang_div_cd=lang_div_cd,
             num_of_rows=num_of_rows,
             page_no=page_no,
-        )
-    except ValueError as e:
-        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
-    except WellnessAPIError as e:
-        return {"error": True, "code": e.code, "message": e.message}
+    )
 
 
 async def get_wellness_intro_info(
@@ -78,18 +65,14 @@ async def get_wellness_intro_info(
     accomcount, chkcreditcard, expagerange, expguide, heritage1/2/3, infocenter,
     opendate, parking, restdate, useseason, usetime). Plus totalCount, pageNo, numOfRows.
     """
-    try:
-        return await _get_client().get_wellness_intro_info(
+    return await get_service().invoke(
+        "get_wellness_intro_info",
             content_id=content_id,
             content_type_id=content_type_id,
             lang_div_cd=lang_div_cd,
             num_of_rows=num_of_rows,
             page_no=page_no,
-        )
-    except ValueError as e:
-        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
-    except WellnessAPIError as e:
-        return {"error": True, "code": e.code, "message": e.message}
+    )
 
 
 async def get_wellness_repeating_info(
@@ -115,18 +98,14 @@ async def get_wellness_repeating_info(
     Returns dict with items (contentid, contenttypeid — both lowercase as returned
     by the API — serialnum, infoname, infotext, fldgubun). Plus totalCount, pageNo, numOfRows.
     """
-    try:
-        return await _get_client().get_wellness_repeating_info(
+    return await get_service().invoke(
+        "get_wellness_repeating_info",
             content_id=content_id,
             content_type_id=content_type_id,
             lang_div_cd=lang_div_cd,
             num_of_rows=num_of_rows,
             page_no=page_no,
-        )
-    except ValueError as e:
-        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
-    except WellnessAPIError as e:
-        return {"error": True, "code": e.code, "message": e.message}
+    )
 
 
 async def get_wellness_images(
@@ -152,15 +131,11 @@ async def get_wellness_images(
     thumbImage ~150x100px, cpyrhtDivCd "Type1"/"Type3", serialnum).
     Plus totalCount, pageNo, numOfRows.
     """
-    try:
-        return await _get_client().get_wellness_images(
+    return await get_service().invoke(
+        "get_wellness_images",
             content_id=content_id,
             lang_div_cd=lang_div_cd,
             num_of_rows=num_of_rows,
             page_no=page_no,
             image_yn=image_yn,
-        )
-    except ValueError as e:
-        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
-    except WellnessAPIError as e:
-        return {"error": True, "code": e.code, "message": e.message}
+    )

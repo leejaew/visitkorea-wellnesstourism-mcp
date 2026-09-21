@@ -1,15 +1,6 @@
 from typing import Optional
 
-from api import WellnessAPIError, WellnessClient
-
-_client: Optional[WellnessClient] = None
-
-
-def _get_client() -> WellnessClient:
-    global _client
-    if _client is None:
-        _client = WellnessClient()
-    return _client
+from services import get_service
 
 
 async def get_legal_district_codes(
@@ -38,18 +29,14 @@ async def get_legal_district_codes(
 
     Returns dict with items list, totalCount, pageNo, numOfRows.
     """
-    try:
-        return await _get_client().get_legal_district_codes(
+    return await get_service().invoke(
+        "get_legal_district_codes",
             lang_div_cd=lang_div_cd,
             num_of_rows=num_of_rows,
             page_no=page_no,
             l_dong_regn_cd=l_dong_regn_cd,
             l_dong_list_yn=l_dong_list_yn,
-        )
-    except ValueError as e:
-        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
-    except WellnessAPIError as e:
-        return {"error": True, "code": e.code, "message": e.message}
+    )
 
 
 async def get_wellness_sync_list(
@@ -88,8 +75,8 @@ async def get_wellness_sync_list(
     Returns dict with items (same as search_wellness_by_area plus "showflag"
     and "oldContentId"), totalCount, pageNo, numOfRows.
     """
-    try:
-        return await _get_client().get_wellness_sync_list(
+    return await get_service().invoke(
+        "get_wellness_sync_list",
             lang_div_cd=lang_div_cd,
             num_of_rows=num_of_rows,
             page_no=page_no,
@@ -101,8 +88,4 @@ async def get_wellness_sync_list(
             l_dong_signgu_cd=l_dong_signgu_cd,
             old_content_id=old_content_id,
             wellness_thema_cd=wellness_thema_cd,
-        )
-    except ValueError as e:
-        return {"error": True, "code": "INVALID_PARAM", "message": str(e)}
-    except WellnessAPIError as e:
-        return {"error": True, "code": e.code, "message": e.message}
+    )
