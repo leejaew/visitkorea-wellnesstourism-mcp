@@ -1,522 +1,333 @@
 # VisitKorea Wellness Tourism MCP Server
 
-![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
-![MCP](https://img.shields.io/badge/MCP-1.27.0-8B5CF6)
-![Transport](https://img.shields.io/badge/transport-Streamable_HTTP_%28JSON%29-6366F1)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Tests](https://github.com/leejaew/visitkorea-wellnesstourism-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/leejaew/visitkorea-wellnesstourism-mcp/actions/workflows/tests.yml)
+![Transport](https://img.shields.io/badge/MCP-Streamable_HTTP-6366F1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An MCP (Model Context Protocol) server that wraps the **Korea Tourism Organization (KTO) Wellness Tourism Open API** (`WellnessTursmService`), exposing 9 structured tools that AI agents — including Claude, Manus AI, and any MCP-compatible client — can call directly via Streamable HTTP. Supports 7 wellness themes and 9 languages.
+## Overview
 
-**Live endpoint:** `https://<your-replit-url>/mcp`
+VisitKorea Wellness Tourism MCP Server is a stateless Model Context Protocol
+service for the Korea Tourism Organization
+[`WellnessTursmService`](https://www.data.go.kr/data/15144030/openapi.do). It
+exposes nine tools for discovering wellness tourism locations in South Korea
+and retrieving their details, images, regional codes, and synchronization data.
 
----
+The server is intended for MCP clients and services that need structured access
+to KTO wellness tourism data over JSON Streamable HTTP. It does not provide
+booking, availability, or medical advice.
 
-## Features
+## Key Features
 
-- **Area-based search** — list wellness tourism spots by province, city, or district
-- **Location-based search** — find spots within a GPS radius (up to 20 km), with distance sorting
-- **Keyword search** — full-text search in Korean, English, and other languages
-- **7 wellness theme filters** — Hot spring/Spa, Jjimjilbang, Traditional medicine, Healing meditation, Beauty spa, Nature healing, Other wellness
-- **Multilingual support** — 9 languages: Korean, English, Japanese, Simplified/Traditional Chinese, German, French, Spanish, Russian
-- **Sync list** — full dataset synchronisation list for building and maintaining local databases
-- **Detail records** — common info, intro info (type-specific), repeating structured info, and image galleries
-- **9 MCP tools** — one per API operation, with full parameter documentation in docstrings
-- **Stateless transport** — every request is self-contained; no session state, no expiry issues
-- **Security hardened** — rate limiting (60 req/min per IP), security headers (CSP, X-Frame-Options), API key log redaction
+- Nine MCP tools covering catalog, search, synchronization, detail, and image
+  operations
+- Search by administrative area, coordinates, radius, or keyword
+- Seven wellness themes and nine upstream language codes
+- Stateless JSON Streamable HTTP endpoint at `/mcp`
+- Shared PostgreSQL response cache and rate limit counters
+- PostgreSQL advisory locks to prevent duplicate upstream requests
+- Input validation, bounded pagination, and normalized error responses
+- Host and origin validation, security headers, and secret redaction
+- Developer landing page at `/`
 
----
+## Tech Stack
 
-## Prerequisites
+| Layer | Technology |
+| --- | --- |
+| Language | Python 3.11 or later |
+| MCP framework | MCP Python SDK with FastMCP |
+| HTTP application | Starlette |
+| ASGI server | Uvicorn |
+| Upstream client | HTTPX |
+| Shared state | PostgreSQL through asyncpg |
+| Build backend | setuptools |
+| Tests | Python `unittest` |
 
-- Python 3.11+
-- A KTO Open API key from [data.go.kr](https://www.data.go.kr/data/15144030/openapi.do) (Service ID: `15144030`)
+Dependency constraints are defined in `pyproject.toml` and mirrored in
+`requirements.txt`.
 
----
+## Architecture
 
-## Installation & Setup
+```mermaid
+flowchart LR
+    Client[MCP client] -->|JSON Streamable HTTP| Transport[Starlette and FastMCP]
+    Transport --> Middleware[Security headers and rate limiting]
+    Middleware --> Tools[MCP tool registry]
+    Tools --> Service[Wellness service]
+    Service --> Cache[(PostgreSQL shared state)]
+    Service --> KTO[KTO WellnessTursmService]
+```
 
-### 1. Clone the repository
+The application creates one HTTP client and one PostgreSQL shared state
+dependency at startup. Cache entries and fixed window rate counters are shared
+across running instances. Advisory locks serialize cache misses for the same
+upstream request.
+
+The server exposes tools only. It does not expose MCP resources or prompts.
+See [Architecture](docs/architecture.md), [Capabilities](docs/capabilities.md),
+and [Security](docs/security.md) for implementation details.
+
+## MCP Tools
+
+| Tool | Purpose |
+| --- | --- |
+| `get_legal_district_codes` | List province, city, and district codes |
+| `get_wellness_sync_list` | Retrieve records for dataset synchronization |
+| `search_wellness_by_area` | Search by administrative area |
+| `search_wellness_by_location` | Search within a radius of WGS84 coordinates |
+| `search_wellness_by_keyword` | Search by text |
+| `get_wellness_common_info` | Retrieve common venue details |
+| `get_wellness_intro_info` | Retrieve content type specific details |
+| `get_wellness_repeating_info` | Retrieve repeating structured details |
+| `get_wellness_images` | Retrieve image URLs and copyright information |
+
+Tool schemas provide argument descriptions, defaults, bounds, and accepted
+codes directly to MCP clients. Contract tests protect the public tool names and
+schemas.
+
+## Repository Structure
+
+```text
+.
+├── src/mcp_server/
+│   ├── clients/          # KTO client, validation, parsing, and shared state
+│   ├── config/           # Environment settings and HTTP configuration
+│   ├── errors/           # Application error model
+│   ├── observability/    # Logging and secret redaction
+│   ├── services/         # Transport independent service layer
+│   ├── tools/            # MCP operations and registration
+│   ├── transports/       # Streamable HTTP application and middleware
+│   ├── main.py           # Dependency composition and process startup
+│   └── server.py         # FastMCP server factory
+├── tests/                # Unit, integration, contract, and security tests
+├── docs/                 # Architecture, deployment, security, and SQL schema
+├── static/               # Landing page and favicon
+├── main.py               # Compatibility launcher
+├── pyproject.toml        # Package metadata and build configuration
+└── requirements.txt      # Runtime dependency constraints
+```
+
+## Requirements
+
+- Python 3.11 or later
+- PostgreSQL
+- A URL encoded data.go.kr service key for KTO Service ID `15144030`
+- Network access to `https://apis.data.go.kr`
+
+The `psql` command line client is optional but useful for applying the included
+schema.
+
+## Environment Variables
+
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `WELLNESS_API_KEY_ENCODING` | Yes | None | URL encoded data.go.kr service key |
+| `DATABASE_URL` | Yes | None | PostgreSQL connection string for shared state |
+| `PORT` | No | `8080` | HTTP listening port from 1 through 65535 |
+| `WELLNESS_ALLOWED_HOSTS` | No | Localhost entries | Comma separated HTTP host allowlist |
+| `WELLNESS_ALLOWED_ORIGINS` | No | Local HTTP origins | Comma separated origin allowlist |
+| `REPLIT_DOMAINS` | No | None | Replit supplied host discovery value |
+| `REPLIT_DEV_DOMAIN` | No | None | Replit supplied development host |
+
+The application does not load `.env` files. Export variables in the shell or
+configure them through the deployment platform.
+
+The data.go.kr encoding key may contain escaped characters such as `%2B` and
+`%2F`. Use the provided encoding key without decoding or encoding it again.
+
+## Installation
 
 ```bash
 git clone https://github.com/leejaew/visitkorea-wellnesstourism-mcp.git
 cd visitkorea-wellnesstourism-mcp
+python -m pip install -e .
 ```
 
-### 2. Install dependencies
+An editable installation provides the `visitkorea-wellness-mcp` command and
+supports package based entry points.
+
+## Database Setup
+
+Create the shared cache and rate limit tables before starting the application:
 
 ```bash
-pip install -r requirements.txt
+psql "$DATABASE_URL" -f docs/shared_state_schema.sql
 ```
 
-### 3. Obtain your API key
+The SQL file is idempotent. Application startup verifies that both tables
+exist, but it does not create or migrate them.
 
-1. Visit [https://www.data.go.kr/data/15144030/openapi.do](https://www.data.go.kr/data/15144030/openapi.do)
-2. Sign in or create a 공공데이터포털 account
-3. Click **활용신청** (Request API access) for the `WellnessTursmService`
-4. After approval (~10 minutes), go to My Page and copy your **일반 인증키 (Encoding)** key
+The database stores temporary upstream responses and fixed window request
+counters. It does not store KTO API keys or end user profiles.
 
-### 4. Set the environment variable
+## Local Development
+
+Set the required variables:
 
 ```bash
-export WELLNESS_API_KEY_ENCODING="your_url_encoded_key_here"
+export WELLNESS_API_KEY_ENCODING="your_url_encoded_data_go_kr_service_key"
+export DATABASE_URL="postgresql://user:password@localhost:5432/wellness"
+export PORT=8080
 ```
 
-On Replit, add it to **Secrets** (not environment variables) under the key name `WELLNESS_API_KEY_ENCODING`.
-
-> The key from data.go.kr is already URL-encoded (contains `%2B`, `%2F`, etc.). Use that value as-is — do not decode or re-encode it.
-
-### 5. Run the server
+Apply the database schema, then start the server:
 
 ```bash
-cd artifacts/wellness-mcp
+psql "$DATABASE_URL" -f docs/shared_state_schema.sql
 python main.py
 ```
 
-The server starts on the port specified by the `PORT` environment variable (defaults to `8080`).
+Available routes:
 
 | URL | Purpose |
-|-----|---------|
+| --- | --- |
 | `http://localhost:8080/` | Developer landing page |
+| `http://localhost:8080/favicon.png` | Landing page icon |
 | `http://localhost:8080/mcp` | MCP Streamable HTTP endpoint |
 
----
+The installed package provides two equivalent entry points:
 
-## Connecting AI Agents
+```bash
+python -m mcp_server
+visitkorea-wellness-mcp
+```
 
-### Manus AI
+## MCP Client Configuration
 
-In Manus AI's connector settings, add a custom MCP server:
-
-| Field | Value |
-|-------|-------|
-| Type | `streamable-http` |
-| URL | `https://<your-replit-url>/mcp` |
-| Authentication | None |
-
-### Claude Desktop / Other MCP clients
-
-Paste into your client's MCP configuration:
+Point a Streamable HTTP compatible MCP client at the deployed `/mcp` endpoint:
 
 ```json
 {
   "mcpServers": {
     "visitkorea-wellnesstourism": {
       "type": "streamable-http",
-      "url": "https://<your-replit-url>/mcp"
+      "url": "https://your-domain.example/mcp"
     }
   }
 }
 ```
 
-Replace the URL with your own deployed endpoint if you forked the repository.
+The endpoint does not issue session IDs and does not require client
+authentication. Restrict network access or add authentication at the gateway
+when the service must not be public.
 
----
+## Build and Package
 
-## Tool Reference
+Install the standard Python build frontend, then build the source and wheel
+distributions:
 
-### Tool 1 — `get_legal_district_codes`
-
-Retrieve legal administrative district (법정동) codes for province/city and district filtering.
-
-**Upstream endpoint:** `GET /ldongCode`
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `lang_div_cd` | string | Optional | Language code (default: `KOR`) |
-| `num_of_rows` | int | Optional | Results per page (default: 10) |
-| `page_no` | int | Optional | Page number (default: 1) |
-| `l_dong_regn_cd` | string | Optional | Province/city code (e.g. `11` = Seoul). Omit to list all provinces. |
-| `l_dong_list_yn` | string | Optional | `N` = 시도/시군구 codes (default); `Y` = full 법정동 list |
-
----
-
-### Tool 2 — `search_wellness_by_area`
-
-List wellness tourism spots filtered by region, content type, and wellness theme.
-
-**Upstream endpoint:** `GET /areaBasedList`
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `lang_div_cd` | string | Optional | Language code (default: `KOR`) |
-| `num_of_rows` | int | Optional | Results per page (default: 10) |
-| `page_no` | int | Optional | Page number (default: 1) |
-| `arrange` | string | Optional | Sort order — `A`/`C`/`D` (no image required); `O`/`Q`/`R` (image required) |
-| `content_type_id` | string | Optional | Content type ID (see reference table) |
-| `mdfcn_dt` | string | Optional | Modified date filter in YYMMDD format |
-| `l_dong_regn_cd` | string | Optional | Province/city code |
-| `l_dong_signgu_cd` | string | Optional | District code (requires `l_dong_regn_cd`) |
-| `wellness_thema_cd` | string | Optional | Wellness theme code (see reference table) |
-
----
-
-### Tool 3 — `search_wellness_by_location`
-
-Find wellness spots within a GPS radius of a point in South Korea, sorted by proximity.
-
-**Upstream endpoint:** `GET /locationBasedList`
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `map_x` | float | **Required** | GPS longitude (WGS84) e.g. `126.9780` |
-| `map_y` | float | **Required** | GPS latitude (WGS84) e.g. `37.5665` |
-| `radius` | int | **Required** | Search radius in metres — maximum `20000` |
-| `lang_div_cd` | string | Optional | Language code (default: `KOR`) |
-| `num_of_rows` | int | Optional | Results per page (default: 10) |
-| `arrange` | string | Optional | `E` = nearest first (no image); `S` = nearest first (image required) |
-| `content_type_id` | string | Optional | Content type ID |
-| `wellness_thema_cd` | string | Optional | Wellness theme code |
-
-Response includes a `dist` field on each item showing the distance in metres from the search point.
-
----
-
-### Tool 4 — `search_wellness_by_keyword`
-
-Full-text keyword search across all wellness tourism content.
-
-**Upstream endpoint:** `GET /searchKeyword`
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `keyword` | string | **Required** | Search term in Korean or English (e.g. `"스파"`, `"spa"`) |
-| `lang_div_cd` | string | Optional | Language code (default: `KOR`) |
-| `num_of_rows` | int | Optional | Results per page (default: 10) |
-| `page_no` | int | Optional | Page number (default: 1) |
-| `arrange` | string | Optional | Sort order |
-| `content_type_id` | string | Optional | Content type ID |
-| `l_dong_regn_cd` | string | Optional | Province/city code |
-| `wellness_thema_cd` | string | Optional | Wellness theme code |
-
----
-
-### Tool 5 — `get_wellness_sync_list`
-
-Retrieve the full dataset synchronisation list — designed for building and maintaining a local copy of the wellness tourism data.
-
-**Upstream endpoint:** `GET /wellnessTursmSyncList`
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `lang_div_cd` | string | Optional | Language code (default: `KOR`) |
-| `num_of_rows` | int | Optional | Results per page (default: 10) |
-| `page_no` | int | Optional | Page number (default: 1) |
-| `showflag` | string | Optional | `1` = publicly visible records only; `0` = hidden records |
-| `mdfcn_dt` | string | Optional | Modified date filter in YYMMDD format |
-| `old_content_id` | string | Optional | Delta sync — retrieve records after this content ID |
-| `wellness_thema_cd` | string | Optional | Wellness theme code |
-
-Returns the same summary fields as `search_wellness_by_area`, plus `showflag` and `oldContentId`.
-
----
-
-### Tool 6 — `get_wellness_common_info`
-
-Fetch the complete common detail record for a single venue: title, address, GPS, phone, overview, homepage, copyright type.
-
-**Upstream endpoint:** `GET /detailCommon`
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `content_id` | string | **Required** | Content ID from a search result (e.g. `"702551"`) |
-| `lang_div_cd` | string | Optional | Language code (default: `KOR`) |
-| `num_of_rows` | int | Optional | Results per page (default: 10) |
-| `page_no` | int | Optional | Page number (default: 1) |
-
-> The `homepage` field may contain raw HTML anchor tags — extract the URL before displaying.
-
----
-
-### Tool 7 — `get_wellness_intro_info`
-
-Fetch type-specific introductory details (hours, parking, rest days, capacity, credit card info). Response fields vary by `content_type_id`.
-
-**Upstream endpoint:** `GET /detailIntro`
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `content_id` | string | **Required** | Content ID |
-| `content_type_id` | string | **Required** | Must match the `contentTypeId` from the search result |
-| `lang_div_cd` | string | Optional | Language code (default: `KOR`) |
-| `num_of_rows` | int | Optional | Results per page (default: 10) |
-| `page_no` | int | Optional | Page number (default: 1) |
-
-For tourist attractions (type `12` / `76`) returns: `accomcount`, `chkcreditcard`, `expagerange`, `expguide`, `infocenter`, `opendate`, `parking`, `restdate`, `useseason`, `usetime`.
-
----
-
-### Tool 8 — `get_wellness_repeating_info`
-
-Fetch repeating structured info items: entrance fees, facilities, amenities, accessibility features, reservation guidance.
-
-**Upstream endpoint:** `GET /detailInfo`
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `content_id` | string | **Required** | Content ID |
-| `content_type_id` | string | **Required** | Must match the venue's category |
-| `lang_div_cd` | string | Optional | Language code (default: `KOR`) |
-| `num_of_rows` | int | Optional | Results per page (default: 10) |
-| `page_no` | int | Optional | Page number (default: 1) |
-
-Returns a list of items each with `infoname`, `infotext`, `serialnum`, `fldgubun`. Note: this endpoint returns `contentid` and `contenttypeid` in lowercase (unlike other endpoints which use camelCase).
-
----
-
-### Tool 9 — `get_wellness_images`
-
-Retrieve all image URLs and copyright types for a specific venue.
-
-**Upstream endpoint:** `GET /detailImage`
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `content_id` | string | **Required** | Content ID |
-| `lang_div_cd` | string | Optional | Language code (default: `KOR`) |
-| `num_of_rows` | int | Optional | Results per page (default: 10) |
-| `page_no` | int | Optional | Page number (default: 1) |
-| `image_yn` | string | Optional | `Y` = venue photos (default); `N` = food/menu images (restaurants only) |
-
-Returns per image: `orgImage` (~500×333 px), `thumbImage` (~150×100 px), `cpyrhtDivCd`, `imgname`, `serialnum`.
-
----
-
-## Reference Tables
-
-### Wellness Theme Codes
-
-| Code | English | Korean |
-|------|---------|--------|
-| `EX050100` | Hot spring / Sauna / Spa | 온천/사우나/스파 |
-| `EX050200` | Jjimjilbang (Korean sauna) | 찜질방 |
-| `EX050300` | Korean traditional medicine | 한방 체험 |
-| `EX050400` | Healing meditation | 힐링 명상 |
-| `EX050500` | Beauty spa | 뷰티 스파 |
-| `EX050600` | Other wellness | 기타 웰니스 |
-| `EX050700` | Nature healing | 자연 치유 |
-
-### Language Codes
-
-| Code | Language |
-|------|----------|
-| `KOR` | Korean (한국어) — default; most complete dataset |
-| `ENG` | English |
-| `JPN` | Japanese (日本語) |
-| `CHS` | Chinese Simplified (简体中文) |
-| `CHT` | Chinese Traditional (繁體中文) |
-| `GER` | German (Deutsch) |
-| `FRE` | French (Français) |
-| `SPN` | Spanish (Español) |
-| `RUS` | Russian (Русский) |
-
-### Content Type IDs
-
-`content_type_id` values differ between Korean and multilingual responses.
-
-| Category | Korean (`KOR`) | Multilingual (`ENG`, `JPN`, etc.) |
-|----------|---------------|----------------------------------|
-| Tourist attraction | `12` | `76` |
-| Cultural facility | `14` | `78` |
-| Event / festival | `15` | `85` |
-| Leisure sports | `28` | `75` |
-| Accommodation | `32` | `80` |
-| Shopping | `38` | `79` |
-| Restaurant | `39` | `82` |
-| Travel course | `25` | Korean only |
-| Transport | Korean only | `77` |
-
-Most wellness venues are classified as **tourist attraction** (`12` for Korean, `76` for multilingual).
-
-### Province Codes (common)
-
-| Code | Region |
-|------|--------|
-| `11` | Seoul (서울) |
-| `21` | Busan (부산) |
-| `22` | Daegu (대구) |
-| `23` | Incheon (인천) |
-| `31` | Gyeonggi-do (경기) |
-| `32` | Gangwon-do (강원) |
-| `37` | Gyeongsangbuk-do (경북) |
-| `38` | Gyeongsangnam-do (경남) |
-| `39` | Jeju Island (제주) |
-
-Use `get_legal_district_codes()` (no parameters) to retrieve all 17 province codes, or pass a province code to get its district (시군구) codes.
-
----
-
-## Usage Examples
-
-### Find hot spring spas near Busan Station
-
-```python
-search_wellness_by_location(
-    map_x=129.0319, map_y=35.1148,
-    radius=5000,
-    wellness_thema_cd="EX050100",
-    arrange="E",
-    lang_div_cd="ENG"
-)
+```bash
+python -m pip install build
+python -m build
 ```
 
-### Search for spas in Seoul (English)
+Generated packages are written to `dist/`.
 
-```python
-search_wellness_by_area(
-    l_dong_regn_cd="11",
-    wellness_thema_cd="EX050100",
-    lang_div_cd="ENG",
-    num_of_rows=10
-)
+## Production Run
+
+A production environment requires the two secrets, the initialized PostgreSQL
+schema, and an HTTPS proxy or hosting platform in front of Uvicorn.
+
+```bash
+export WELLNESS_API_KEY_ENCODING="your_url_encoded_data_go_kr_service_key"
+export DATABASE_URL="postgresql://user:password@database:5432/wellness"
+export PORT=8080
+visitkorea-wellness-mcp
 ```
 
-### Keyword search
+The process binds to `0.0.0.0` and reads the port at startup. The service has no
+background worker or persistent local filesystem requirement.
 
-```python
-search_wellness_by_keyword(keyword="스파", lang_div_cd="KOR", num_of_rows=5)
-search_wellness_by_keyword(keyword="spa", lang_div_cd="ENG", num_of_rows=5)
-```
+On Replit, use the managed PostgreSQL database and store the KTO key as a
+secret. The root `python main.py` entry point remains compatible with Replit
+workflows. Replit Publish applies development database schema changes to the
+production database.
 
-### Full venue detail retrieval
-
-```python
-# 1. Get common info (address, overview, GPS, phone)
-get_wellness_common_info(content_id="702551", lang_div_cd="ENG")
-
-# 2. Get operational details (hours, parking, rest days)
-get_wellness_intro_info(content_id="702551", content_type_id="76", lang_div_cd="ENG")
-
-# 3. Get fees and facilities
-get_wellness_repeating_info(content_id="702551", content_type_id="76", lang_div_cd="ENG")
-
-# 4. Get photos
-get_wellness_images(content_id="702551", lang_div_cd="ENG")
-```
-
----
-
-## Project Structure
-
-```text
-artifacts/wellness-mcp/
-├── src/mcp_server/
-│   ├── __main__.py          # Package entry point
-│   ├── main.py              # Dependency composition and process startup
-│   ├── server.py            # Constructible FastMCP server factory
-│   ├── tools/               # Thin operations and single registration point
-│   ├── services/            # Transport-independent application service
-│   ├── clients/             # KTO client and PostgreSQL shared state
-│   ├── config/              # Checked environment settings
-│   ├── errors/              # Safe application error model
-│   ├── observability/       # Secret-safe logging configuration
-│   └── transports/          # Streamable HTTP app and middleware
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   ├── contract/
-│   ├── security/
-│   └── fixtures/
-├── docs/
-│   ├── architecture.md
-│   ├── capabilities.md
-│   ├── security.md
-│   └── deployment.md
-├── static/
-├── main.py                  # Thin compatibility launcher for Replit
-├── pyproject.toml
-├── requirements.txt
-├── .env.example
-├── MANUS_INSTRUCTIONS.md
-├── README.md
-└── LICENSE
-```
-
-Resources, prompts, and authentication packages are intentionally omitted. The
-server currently exposes tools only, and its read-only public data endpoint does
-not require user authentication. Empty extension packages would add no behavior.
-
----
-
-## Dependencies
-
-```
-mcp[cli]>=1.27.0,<2.0.0  # MCP SDK compatibility range
-httpx>=0.27.0        # Async HTTP client for upstream API calls (tested with 0.28.1)
-starlette>=0.37.0    # ASGI framework for routing and middleware (tested with 1.0.0)
-uvicorn>=0.29.0      # ASGI server (tested with 0.44.0)
-uvloop>=0.19.0       # Optional: faster event loop (tested with 0.22.1; falls back gracefully)
-```
-
----
-
-## Transport & Protocol Notes
-
-This server uses **MCP Streamable HTTP** transport with two non-default settings:
-
-| Setting | Value | Reason |
-|---------|-------|--------|
-| `json_response` | `True` | Clients such as Manus AI send `Accept: application/json` only. SSE/streaming mode requires both `application/json` and `text/event-stream` in the `Accept` header and returns HTTP 406 otherwise. JSON mode removes this requirement. |
-| `stateless_http` | `True` | Gateway-style clients enumerate tools at connector setup time and execute tool calls much later. Stateful sessions are lost whenever the server restarts, causing "Session not found" errors. Stateless mode makes every request fully self-contained — no session IDs are issued or required. |
-
-The server is compatible with any MCP 2025-03-26 client that sends `Accept: application/json`.
-The implementation uses MCP Python SDK 1.27.0 conventions and preserves stateless
-Streamable HTTP behavior for existing clients.
-
----
-
-## Security
-
-| Feature | Details |
-|---------|---------|
-| Rate limiting | 60 requests per 60 seconds per IP on `/mcp`; returns HTTP 429 with `Retry-After` |
-| Security headers | `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` |
-| Host and Origin validation | MCP SDK DNS rebinding protection is enabled with explicit Replit and configured allowlists |
-| API key redaction | The configured key and `serviceKey=` query values are replaced with `[REDACTED]` in server and HTTP client logs |
-| Shared cache | PostgreSQL TTL records and advisory locks share responses and prevent duplicate upstream calls across instances |
-| Shared rate limits | Atomic PostgreSQL counters enforce one limit across all running instances |
-| Redirect policy | Upstream HTTP redirects are disabled so the API key is not forwarded to another host |
-
----
-
-## Important Usage Notes
-
-| Note | Detail |
-|------|--------|
-| **`content_type_id` differs by language** | Tourist attractions are `12` for `KOR` but `76` for `ENG`/`JPN`/etc. Using the wrong ID returns empty results, not an error. |
-| **GPS radius hard limit** | `radius` for `search_wellness_by_location` must not exceed `20000` metres. |
-| **District code dependency** | `l_dong_signgu_cd` requires `l_dong_regn_cd`; invalid combinations return `INVALID_PARAM`. |
-| **`content_type_id` is required** | Both `get_wellness_intro_info` and `get_wellness_repeating_info` require `content_type_id`. Always read it from the search result and pass it through. |
-| **Homepage field may contain HTML** | The `homepage` field from `get_wellness_common_info` sometimes contains raw `<a href="...">` tags. Extract the URL before displaying. |
-| **Korean data is most complete** | Multilingual datasets may have fewer records or missing fields. If English returns no results, retry with `lang_div_cd="KOR"`. |
-| **Pagination** | Default `num_of_rows` is 10. Increase to 50–100 for broader searches. Use `totalCount` with `pageNo` to traverse multiple pages. |
-
----
+See [Deployment](docs/deployment.md) for the supported entry points and schema
+requirements.
 
 ## Testing
 
-The test suite uses Python's standard library test runner and does not call the
-live KTO API:
+Run the complete test suite:
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
+```
+
+Run the compilation check used by CI:
+
+```bash
 PYTHONPATH=src python -m compileall -q src tests main.py
 ```
 
-The tests cover public MCP tool names and schemas, validation limits, upstream
-error mapping, cache behavior, and sanitization of unexpected service failures.
+PostgreSQL integration tests run when `DATABASE_URL` is available and skip
+otherwise. HTTP client integration tests use mocked responses. The suite does
+not call the live KTO API.
 
----
+## Security Notes
+
+- Never commit `WELLNESS_API_KEY_ENCODING`, `DATABASE_URL`, or `.env` files.
+- Upstream redirects are disabled so the KTO key is not forwarded to another
+  host.
+- Logs redact the configured API key and `serviceKey` query values.
+- MCP requests are limited to 60 requests per 60 seconds per direct client IP.
+- PostgreSQL counters enforce the same rate limit across all instances.
+- Host and origin validation reduce DNS rebinding exposure.
+- Responses include CSP, frame, content type, and referrer policy headers.
+- TLS and client authentication must be provided by the deployment platform or
+  gateway when required.
+
+## Troubleshooting
+
+### Startup reports a missing API key
+
+Set `WELLNESS_API_KEY_ENCODING` to the encoding key from data.go.kr. Do not use
+the decoded key.
+
+### Startup reports a missing database schema
+
+Confirm that `DATABASE_URL` targets the intended database, then run:
+
+```bash
+psql "$DATABASE_URL" -f docs/shared_state_schema.sql
+```
+
+### Requests fail host or origin validation
+
+Add the public host and origin to the comma separated allowlists:
+
+```bash
+export WELLNESS_ALLOWED_HOSTS="mcp.example.com"
+export WELLNESS_ALLOWED_ORIGINS="https://mcp.example.com"
+```
+
+### The upstream API returns an authentication error
+
+Confirm that the KTO service request is approved and that the URL encoded key
+was not decoded or encoded a second time.
+
+## Known Limitations
+
+- The server exposes read only directory data. It does not provide booking,
+  availability, or transactional operations.
+- Results depend on the KTO service, quota, coverage, and update schedule.
+- Korean data may contain more records or fields than translated datasets.
+- Content type IDs differ between Korean and multilingual responses.
+- The direct ASGI client address is used for rate limiting. Configure trusted
+  proxy behavior at the gateway when deploying behind multiple proxy layers.
+- The public MCP endpoint has no built in client authentication.
+- The landing page loads fonts and client libraries from external CDNs.
 
 ## Contributing
 
-Contributions are welcome. Please open an issue before submitting a pull request.
-Run the local test suite before submitting changes. Live API checks are optional
-and must never record or commit API keys.
-
----
+Open an issue before submitting a substantial change. Run the test and
+compilation commands before opening a pull request. Do not record live KTO
+responses containing credentials in fixtures or logs.
 
 ## License
 
-MIT License — © 2026 leejaew. See [LICENSE](LICENSE) for full text.
+Licensed under the [MIT License](LICENSE).
 
-Tourism data provided by the Korea Tourism Organization (KTO) via the 공공데이터포털 open API platform. Data usage is subject to KTO terms — attribution is required for `Type1` content; `Type3` content additionally prohibits modification.
+Tourism data is provided by the Korea Tourism Organization through
+data.go.kr. Follow the source data terms and the copyright type attached to each
+record.
