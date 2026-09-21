@@ -68,6 +68,7 @@ On Replit, add it to **Secrets** (not environment variables) under the key name 
 ### 5. Run the server
 
 ```bash
+cd artifacts/wellness-mcp
 python main.py
 ```
 
@@ -396,45 +397,50 @@ get_wellness_images(content_id="702551", lang_div_cd="ENG")
 
 ## Project Structure
 
-```
-visitkorea-wellnesstourism-mcp/
-├── main.py                  # Replit entrypoint — Starlette app, rate limiting, security headers, lifespan
-├── server.py                # FastMCP server definition with 9 registered tool wrappers
-├── api/
-│   ├── __init__.py          # Re-exports WellnessClient, WellnessAPIError
-│   ├── config.py            # Checked environment settings, transport policy, HTTP client factory
-│   ├── cache.py             # Bounded TTL cache with copy isolation and stampede locks
-│   ├── validation.py        # Strict input validation and cross-field guards
-│   ├── parser.py            # WellnessAPIError, JSON/XML response normaliser
-│   └── client.py            # Injected async KTO API client with 9 operations
-├── services/
-│   └── wellness.py          # Application service boundary and sanitized error mapping
-├── tools/
-│   ├── __init__.py          # Re-exports all 9 tool functions
-│   ├── catalog.py           # get_legal_district_codes, get_wellness_sync_list
-│   ├── search.py            # search_wellness_by_area/location/keyword
-│   └── detail.py            # get_wellness_common/intro/repeating_info, get_wellness_images
+```text
+artifacts/wellness-mcp/
+├── src/mcp_server/
+│   ├── __main__.py          # Package entry point
+│   ├── main.py              # Dependency composition and process startup
+│   ├── server.py            # Constructible FastMCP server factory
+│   ├── tools/               # Thin operations and single registration point
+│   ├── services/            # Transport-independent application service
+│   ├── clients/             # KTO client and PostgreSQL shared state
+│   ├── config/              # Checked environment settings
+│   ├── errors/              # Safe application error model
+│   ├── observability/       # Secret-safe logging configuration
+│   └── transports/          # Streamable HTTP app and middleware
 ├── tests/
-│   ├── test_cache.py        # Cache isolation, expiry, and secret-safe keys
-│   ├── test_client.py       # Upstream response, timeout, and validation behavior
-│   ├── test_contracts.py    # Public MCP tool names, schemas, and error contracts
-│   └── test_validation.py   # Input bounds and cross-field validation
+│   ├── unit/
+│   ├── integration/
+│   ├── contract/
+│   ├── security/
+│   └── fixtures/
+├── docs/
+│   ├── architecture.md
+│   ├── capabilities.md
+│   ├── security.md
+│   └── deployment.md
 ├── static/
-│   ├── index.html           # Developer landing page
-│   └── favicon.png          # Server icon
+├── main.py                  # Thin compatibility launcher for Replit
+├── pyproject.toml
 ├── requirements.txt
-├── .env.example             # Local configuration template without secrets
-├── MANUS_INSTRUCTIONS.md    # Detailed usage guide for Manus AI agents
+├── .env.example
+├── MANUS_INSTRUCTIONS.md
 ├── README.md
 └── LICENSE
 ```
+
+Resources, prompts, and authentication packages are intentionally omitted. The
+server currently exposes tools only, and its read-only public data endpoint does
+not require user authentication. Empty extension packages would add no behavior.
 
 ---
 
 ## Dependencies
 
 ```
-mcp[cli]>=1.0.0      # MCP SDK (tested with 1.27.0)
+mcp[cli]>=1.27.0,<2.0.0  # MCP SDK compatibility range
 httpx>=0.27.0        # Async HTTP client for upstream API calls (tested with 0.28.1)
 starlette>=0.37.0    # ASGI framework for routing and middleware (tested with 1.0.0)
 uvicorn>=0.29.0      # ASGI server (tested with 0.44.0)
@@ -466,7 +472,8 @@ Streamable HTTP behavior for existing clients.
 | Security headers | `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` |
 | Host and Origin validation | MCP SDK DNS rebinding protection is enabled with explicit Replit and configured allowlists |
 | API key redaction | The configured key and `serviceKey=` query values are replaced with `[REDACTED]` in server and HTTP client logs |
-| Cache protection | Bounded 512-entry TTL cache, deep-copy isolation, and per-key locks prevent memory growth, mutation leaks, and duplicate upstream calls |
+| Shared cache | PostgreSQL TTL records and advisory locks share responses and prevent duplicate upstream calls across instances |
+| Shared rate limits | Atomic PostgreSQL counters enforce one limit across all running instances |
 | Redirect policy | Upstream HTTP redirects are disabled so the API key is not forwarded to another host |
 
 ---
@@ -491,8 +498,8 @@ The test suite uses Python's standard library test runner and does not call the
 live KTO API:
 
 ```bash
-python -m unittest discover -s tests -v
-python -m compileall -q .
+PYTHONPATH=src python -m unittest discover -s tests -v
+PYTHONPATH=src python -m compileall -q src tests main.py
 ```
 
 The tests cover public MCP tool names and schemas, validation limits, upstream
